@@ -83,6 +83,8 @@
             border: 1px solid #e5e7eb;
             transition: all 0.2s ease;
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            text-decoration: none;
+            color: inherit;
         }
         
         .event-card:hover {
@@ -528,7 +530,7 @@
                 
                 <div class="events-grid">
                     @foreach($monthGroup['events'] as $event)
-                        <div class="event-card">
+                        <a href="{{ route('events.show', $event['event_id']) }}" class="event-card">
                             <div class="event-date">
                                 <div class="event-date-day">{{ $event['formatted_date']['day'] }}</div>
                                 <div class="event-date-month">{{ $event['formatted_date']['month'] }}</div>
@@ -547,7 +549,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </a>
                     @endforeach
                 </div>
             @endforeach
