@@ -15,13 +15,50 @@ class AuthController extends Controller
     {
         // Form validasyonu
         $request->validate([
-            'email' => 'required|email',
+            'identifier' => 'required|string',
             'password' => 'required',
             'userType' => 'required|in:team,manager',
         ]);
         
         // Şifreyi SHA-256 ile hashleme
         $hashedPassword = hash('sha256', $request->password);
+        
+        // Giriş bilgisinin telefon mu e-posta mı olduğunu kontrol et
+        $identifier = $request->identifier;
+        $isEmail = filter_var($identifier, FILTER_VALIDATE_EMAIL);
+        
+        // Telefon formatı doğrulama ve standartlaştırma
+        $phoneFormats = [
+            '/^\+90[5-9][0-9]{9}$/', // +905xxxxxxxxx formatı
+            '/^0[5-9][0-9]{9}$/',    // 05xxxxxxxxx formatı
+            '/^[5-9][0-9]{9}$/'      // 5xxxxxxxxx formatı (başında 0 olmadan)
+        ];
+        
+        $isPhone = false;
+        $normalizedPhone = null;
+        
+        foreach ($phoneFormats as $pattern) {
+            if (preg_match($pattern, $identifier)) {
+                $isPhone = true;
+                
+                // Telefon numarasını +90 standardına dönüştür
+                if (preg_match('/^\+90/', $identifier)) {
+                    $normalizedPhone = $identifier; // Zaten +90 formatında
+                } else if (preg_match('/^0/', $identifier)) {
+                    $normalizedPhone = '+90' . substr($identifier, 1); // 0'ı kaldır, +90 ekle
+                } else {
+                    $normalizedPhone = '+90' . $identifier; // Başına +90 ekle
+                }
+                
+                break;
+            }
+        }
+        
+        if (!$isEmail && !$isPhone) {
+            return back()->withErrors([
+                'identifier' => 'Geçerli bir e-posta adresi veya telefon numarası giriniz.',
+            ]);
+        }
         
         // Supabase bağlantı bilgileri
         $supabaseUrl = env('SUPABASE_URL');
@@ -34,15 +71,23 @@ class AuthController extends Controller
         try {
             if ($request->userType === 'team') {
                 // Ekip üyesi girişi - users tablosundan kullanıcıyı sorgula
+                $queryParams = [
+                    'select' => 'user_id,mail,phone,pass,user_name,user_surname,user_username',
+                    'pass' => 'eq.' . $hashedPassword,
+                ];
+                
+                // E-posta veya telefon filtresini ekle
+                if ($isEmail) {
+                    $queryParams['mail'] = 'eq.' . $identifier;
+                } else {
+                    $queryParams['phone'] = 'eq.' . $normalizedPhone;
+                }
+                
                 $response = Http::withHeaders([
                     'apikey' => $supabaseKey,
                     'Authorization' => 'Bearer ' . $supabaseKey,
                     'Content-Type' => 'application/json',
-                ])->get($supabaseUrl . '/rest/v1/users', [
-                    'select' => 'user_id,mail,pass,user_name,user_surname,user_username',
-                    'mail' => 'eq.' . $request->email,
-                    'pass' => 'eq.' . $hashedPassword,
-                ]);
+                ])->get($supabaseUrl . '/rest/v1/users', $queryParams);
                 
                 if (!$response->successful()) {
                     throw new \Exception('Kullanıcı sorgulanırken hata: ' . $response->body());
@@ -52,8 +97,8 @@ class AuthController extends Controller
                 
                 if (empty($users)) {
                     return back()->withErrors([
-                        'email' => 'Geçersiz e-posta veya şifre.',
-                    ]);
+                        'identifier' => 'Geçersiz e-posta/telefon veya şifre.',
+                    ])->withInput($request->except('password'));
                 }
                 
                 $user = $users[0]; // İlk eşleşen kullanıcı
@@ -66,15 +111,23 @@ class AuthController extends Controller
                 
             } else {
                 // Menajer girişi - managers tablosundan sorgu
+                $queryParams = [
+                    'select' => 'manager_id,manager_email,manager_phone,manager_pass,manager_name,manager_surname,company',
+                    'manager_pass' => 'eq.' . $hashedPassword,
+                ];
+                
+                // E-posta veya telefon filtresini ekle
+                if ($isEmail) {
+                    $queryParams['manager_email'] = 'eq.' . $identifier;
+                } else {
+                    $queryParams['manager_phone'] = 'eq.' . $normalizedPhone;
+                }
+                
                 $response = Http::withHeaders([
                     'apikey' => $supabaseKey,
                     'Authorization' => 'Bearer ' . $supabaseKey,
                     'Content-Type' => 'application/json',
-                ])->get($supabaseUrl . '/rest/v1/managers', [
-                    'select' => 'manager_id,manager_email,manager_pass,manager_name,manager_surname,company',
-                    'manager_email' => 'eq.' . $request->email,
-                    'manager_pass' => 'eq.' . $hashedPassword,
-                ]);
+                ])->get($supabaseUrl . '/rest/v1/managers', $queryParams);
                 
                 if (!$response->successful()) {
                     throw new \Exception('Menajer sorgulanırken hata: ' . $response->body());
@@ -84,8 +137,8 @@ class AuthController extends Controller
                 
                 if (empty($managers)) {
                     return back()->withErrors([
-                        'email' => 'Geçersiz e-posta veya şifre.',
-                    ]);
+                        'identifier' => 'Geçersiz e-posta/telefon veya şifre.',
+                    ])->withInput($request->except('password'));
                 }
                 
                 $manager = $managers[0]; // İlk eşleşen menajer

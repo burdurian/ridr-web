@@ -262,8 +262,8 @@
                         @csrf
                         <input type="hidden" name="userType" value="team">
                         <div class="input-group">
-                            <label for="team-email" class="input-label">E-posta Adresi</label>
-                            <input type="email" id="team-email" name="email" placeholder="ornek@ridr.com" class="form-input" required>
+                            <label for="team-email" class="input-label">E-posta veya Telefon</label>
+                            <input type="text" id="team-email" name="identifier" placeholder="ornek@ridr.com veya 5xxxxxxxxx, 05xxxxxxxxx" class="form-input" required>
                         </div>
                         
                         <div class="input-group">
@@ -290,8 +290,8 @@
                         @csrf
                         <input type="hidden" name="userType" value="manager">
                         <div class="input-group">
-                            <label for="manager-email" class="input-label">E-posta Adresi</label>
-                            <input type="email" id="manager-email" name="email" placeholder="menajer@ridr.com" class="form-input" required>
+                            <label for="manager-email" class="input-label">E-posta veya Telefon</label>
+                            <input type="text" id="manager-email" name="identifier" placeholder="menajer@ridr.com veya 5xxxxxxxxx, 05xxxxxxxxx" class="form-input" required>
                         </div>
                         
                         <div class="input-group">
@@ -349,11 +349,11 @@
             
             // Ekip üye formu için validasyon
             teamForm.addEventListener('submit', function(e) {
-                const emailInput = document.getElementById('team-email');
+                const identifierInput = document.getElementById('team-email');
                 const passwordInput = document.getElementById('team-password');
                 
                 // Validasyon kontrolleri
-                if (!validateEmail(emailInput) || !validatePassword(passwordInput)) {
+                if (!validateIdentifier(identifierInput) || !validatePassword(passwordInput)) {
                     e.preventDefault(); // Sadece validasyon başarısız olursa önle
                     return;
                 }
@@ -364,11 +364,11 @@
             
             // Menajer formu için validasyon
             managerForm.addEventListener('submit', function(e) {
-                const emailInput = document.getElementById('manager-email');
+                const identifierInput = document.getElementById('manager-email');
                 const passwordInput = document.getElementById('manager-password');
                 
                 // Validasyon kontrolleri
-                if (!validateEmail(emailInput) || !validatePassword(passwordInput)) {
+                if (!validateIdentifier(identifierInput) || !validatePassword(passwordInput)) {
                     e.preventDefault(); // Sadece validasyon başarısız olursa önle
                     return;
                 }
@@ -377,23 +377,38 @@
                 // Şifre hash'leme artık backend'de yapılacak
             });
             
-            // Email validasyonu
-            function validateEmail(input) {
-                const emailValue = input.value;
+            // E-posta veya telefon validasyonu
+            function validateIdentifier(input) {
+                const value = input.value.trim();
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const phoneRegexes = [
+                    /^\+90[5-9][0-9]{9}$/,  // +905xxxxxxxxx formatı
+                    /^0[5-9][0-9]{9}$/,      // 05xxxxxxxxx formatı
+                    /^[5-9][0-9]{9}$/        // 5xxxxxxxxx formatı (başında 0 olmadan)
+                ];
                 
-                if (!emailValue) {
-                    showError(input, 'E-posta adresi gereklidir');
+                if (!value) {
+                    showError(input, 'E-posta veya telefon numarası gereklidir');
                     return false;
                 }
                 
-                if (!emailRegex.test(emailValue)) {
-                    showError(input, 'Geçerli bir e-posta adresi girin');
-                    return false;
+                // E-posta formatını kontrol et
+                if (emailRegex.test(value)) {
+                    hideError(input);
+                    return true;
                 }
                 
-                hideError(input);
-                return true;
+                // Telefon formatlarını kontrol et
+                for (let i = 0; i < phoneRegexes.length; i++) {
+                    if (phoneRegexes[i].test(value)) {
+                        hideError(input);
+                        return true;
+                    }
+                }
+                
+                // Hiçbir format eşleşmedi, hata göster
+                showError(input, 'Geçerli bir e-posta adresi veya telefon numarası giriniz (+905xxxxxxxxx, 05xxxxxxxxx veya 5xxxxxxxxx)');
+                return false;
             }
             
             // Parola validasyonu
