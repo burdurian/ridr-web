@@ -1,0 +1,11 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/tarikalt/app.ridr.live
+    - /bin/cp -R * $DEPLOYPATH
+    - /bin/cp -R .env.example $DEPLOYPATH/.env
+    - /bin/mkdir -p $DEPLOYPATH/storage/framework/sessions
+    - /bin/mkdir -p $DEPLOYPATH/storage/framework/views
+    - /bin/mkdir -p $DEPLOYPATH/storage/framework/cache
+    - /bin/chmod -R 755 $DEPLOYPATH/storage
+    - /bin/chmod -R 755 $DEPLOYPATH/bootstrap/cache
