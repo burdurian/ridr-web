@@ -263,7 +263,7 @@
                         <input type="hidden" name="userType" value="team">
                         <div class="input-group">
                             <label for="team-email" class="input-label">E-posta veya Telefon</label>
-                            <input type="text" id="team-email" name="identifier" placeholder="ornek@ridr.com veya 5xxxxxxxxx, 05xxxxxxxxx" class="form-input" required>
+                            <input type="text" id="team-email" name="identifier" placeholder="ornek@ridr.com veya 5xxxxxxxxx" class="form-input" required>
                         </div>
                         
                         <div class="input-group">
