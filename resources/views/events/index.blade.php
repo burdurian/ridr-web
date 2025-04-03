@@ -85,12 +85,16 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
             text-decoration: none;
             color: inherit;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
         }
         
         .event-card:hover {
             border-color: #d1d5db;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
             transform: translateY(-2px);
+            color: inherit;
         }
         
         .event-date {
@@ -530,7 +534,7 @@
                 
                 <div class="events-grid">
                     @foreach($monthGroup['events'] as $event)
-                        <a href="{{ route('events.show', $event['event_id']) }}" class="event-card">
+                        <a href="{{ url('/events/'.$event['event_id']) }}" class="event-card" onclick="window.location.href='{{ url('/events/'.$event['event_id']) }}'">
                             <div class="event-date">
                                 <div class="event-date-day">{{ $event['formatted_date']['day'] }}</div>
                                 <div class="event-date-month">{{ $event['formatted_date']['month'] }}</div>
@@ -642,6 +646,16 @@
                 locale: "tr",
                 allowInput: false,
                 disableMobile: "true"
+            });
+            
+            // Etkinlik kartlarının tıklanabilirliğini güçlendir
+            document.querySelectorAll('.event-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const href = this.getAttribute('href');
+                    if (href) {
+                        window.location.href = href;
+                    }
+                });
             });
         });
     </script>

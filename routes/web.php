@@ -30,7 +30,6 @@ Route::get('/register', function () {
 
 // Etkinlikler sayfası
 Route::get('/events', [App\Http\Controllers\EventController::class, 'index'])->name('events.index');
-Route::get('/events/{eventId}', [App\Http\Controllers\EventController::class, 'show'])->name('events.show');
 
 // Auth işlemleri
 Route::post('/login', [App\Http\Controllers\AuthController::class, 'login'])->name('auth.login');
