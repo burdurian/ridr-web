@@ -794,37 +794,100 @@
                     </div>
                     <div class="info-card-body">
                         @if($plan)
-                            <div class="info-item">
-                                <div class="info-label">Plan:</div>
-                                <div class="info-value">{{ $plan['plan_name'] }}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Fiyat:</div>
-                                <div class="info-value">{{ $plan['monthly_price'] }} {{ $plan['price_currency'] }} / ay</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="info-label">Maksimum Müzisyen:</div>
-                                <div class="info-value">{{ $plan['max_members'] }}</div>
-                            </div>
-                            @if(!empty($plan['plan_features']) && is_array($plan['plan_features']))
-                                <div class="info-item">
-                                    <div class="info-label">Özellikler:</div>
-                                    <div class="info-value">
-                                        <ul class="plan-features">
-                                            @foreach($plan['plan_features'] as $key => $value)
-                                                <li>
-                                                    {{ ucfirst(str_replace('_', ' ', $key)) }}
-                                                    <span class="feature-status {{ $value == 'yes' ? 'available' : 'unavailable' }}">
-                                                        {{ $value == 'yes' ? 'Var' : 'Yok' }}
-                                                    </span>
-                                                </li>
-                                            @endforeach
-                                        </ul>
-                                    </div>
+                            <div class="plan-card" style="border: 1px solid #e9ecef; border-radius: 15px; padding: 20px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);">
+                                <div class="plan-name" style="font-size: 22px; font-weight: 600; margin-bottom: 10px; color: #333;">
+                                    {{ $plan['plan_name'] }}
+                                    @php
+                                        $badgeClass = 'basic';
+                                        if (strpos(strtolower($plan['plan_name']), 'temel') !== false) {
+                                            $badgeClass = 'basic';
+                                        } elseif (strpos(strtolower($plan['plan_name']), 'seçkin') !== false) {
+                                            $badgeClass = 'premium';
+                                            $badgeText = 'En Çok Tercih Edilen';
+                                        } elseif (strpos(strtolower($plan['plan_name']), 'sınırsız') !== false) {
+                                            $badgeClass = 'pro';
+                                        }
+                                    @endphp
+                                    @if(isset($badgeText))
+                                        <span class="plan-badge {{ $badgeClass }}" style="font-size: 12px; padding: 3px 8px; background-color: #e67e22; color: white; border-radius: 12px; margin-left: 10px;">{{ $badgeText }}</span>
+                                    @endif
                                 </div>
-                            @endif
+                                
+                                <div class="plan-price" style="font-size: 28px; font-weight: 700; margin-bottom: 15px; color: #6c63ff;">
+                                    {{ $plan['monthly_price'] }} {{ $plan['price_currency'] }}<span style="font-size: 16px; color: #7f8c8d;">/ay</span>
+                                </div>
+                                
+                                <div class="mt-3 mb-4">
+                                    <span class="badge bg-light text-dark" style="font-size: 14px; padding: 8px 12px;">
+                                        <i class="fas fa-user-group me-1"></i> 
+                                        @if(isset($plan['max_members']) && $plan['max_members'] == 9999)
+                                            Sınırsız ekip üyesi
+                                        @else
+                                            Maksimum {{ $plan['max_members'] }} ekip üyesi
+                                        @endif
+                                    </span>
+                                </div>
+                                
+                                <ul class="plan-features" style="list-style: none; padding-left: 0; margin-top: 20px;">
+                                    @php
+                                        // Feature mapping from JSON
+                                        $featuresMapping = [
+                                            'davetiye_talebi' => 'Davetiye Talebi',
+                                            'takvim_gorunumu' => 'Takvim Görünümü',
+                                            'oncelikli_destek' => 'Öncelikli Destek',
+                                            'detayli_analizler' => 'Detaylı Analizler',
+                                            'sanatci_dosyalari' => 'Sanatçı Dosyaları',
+                                            'etkinlik_olusturma' => 'Etkinlik Oluşturma',
+                                            'apple_watch_destegi' => 'Apple Watch Desteği',
+                                            'konser_takvimi_gorseli' => 'Konser Takvimi Görseli',
+                                            'etkinlik_akisi_zamansiz' => 'Etkinlik Akışı Yönetimi',
+                                            'ulasim_konaklama_yonetimi' => 'Ulaşım ve Konaklama Yönetimi',
+                                            'etkinlik_akisi_bildirimleri' => 'Etkinlik Akışı Bildirimleri'
+                                        ];
+                                        
+                                        // Özelliklerin sıralama dizisi
+                                        $featureOrder = [
+                                            'takvim_gorunumu',
+                                            'etkinlik_olusturma',
+                                            'etkinlik_akisi_zamansiz',
+                                            'ulasim_konaklama_yonetimi',
+                                            'davetiye_talebi',
+                                            'sanatci_dosyalari',
+                                            'etkinlik_akisi_bildirimleri',
+                                            'detayli_analizler',
+                                            'apple_watch_destegi',
+                                            'konser_takvimi_gorseli',
+                                            'oncelikli_destek'
+                                        ];
+                                    @endphp
+                                    
+                                    @if(!empty($plan['plan_features']) && is_array($plan['plan_features']))
+                                        @foreach($featureOrder as $key)
+                                            @if(isset($plan['plan_features'][$key]) && isset($featuresMapping[$key]))
+                                                <li style="padding: 10px 0; border-bottom: 1px solid #f1f1f1; display: flex; align-items: center;">
+                                                    @if($plan['plan_features'][$key] === 'yes')
+                                                        <i class="fas fa-check-circle me-2" style="color: #27ae60;"></i>
+                                                    @else
+                                                        <i class="fas fa-times-circle me-2" style="color: #e74c3c;"></i>
+                                                    @endif
+                                                    {{ $featuresMapping[$key] }}
+                                                </li>
+                                            @endif
+                                        @endforeach
+                                    @endif
+                                </ul>
+                                
+                                <div class="mt-4">
+                                    <a href="{{ route('subscriptions.index') }}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-exchange-alt me-1"></i> Planı Değiştir
+                                    </a>
+                                </div>
+                            </div>
                         @else
                             <p class="text-muted">Abonelik bilgisi bulunamadı.</p>
+                            <a href="{{ route('subscriptions.index') }}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i> Abonelik Seç
+                            </a>
                         @endif
                     </div>
                 </div>
