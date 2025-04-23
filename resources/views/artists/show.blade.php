@@ -864,13 +864,13 @@
                                     @if(!empty($plan['plan_features']) && is_array($plan['plan_features']))
                                         @foreach($featureOrder as $key)
                                             @if(isset($plan['plan_features'][$key]) && isset($featuresMapping[$key]))
-                                                <li style="padding: 10px 0; border-bottom: 1px solid #f1f1f1; display: flex; align-items: center;">
+                                                <li style="padding: 10px 0; border-bottom: 1px solid #f1f1f1; display: flex; align-items: center; justify-content: space-between;">
+                                                    <span>{{ $featuresMapping[$key] }}</span>
                                                     @if($plan['plan_features'][$key] === 'yes')
-                                                        <i class="fas fa-check-circle me-2" style="color: #27ae60;"></i>
+                                                        <i class="fas fa-check-circle" style="color: #27ae60;"></i>
                                                     @else
-                                                        <i class="fas fa-times-circle me-2" style="color: #e74c3c;"></i>
+                                                        <i class="fas fa-times-circle" style="color: #e74c3c;"></i>
                                                     @endif
-                                                    {{ $featuresMapping[$key] }}
                                                 </li>
                                             @endif
                                         @endforeach
