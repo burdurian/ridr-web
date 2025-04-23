@@ -425,11 +425,6 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('artists.index') }}">
-                            <i class="fas fa-music"></i> Sanatçılarım
-                        </a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="{{ route('subscriptions.index') }}">
                             <i class="fas fa-credit-card"></i> Abonelikler
                         </a>
@@ -532,6 +527,9 @@
                 <div class="dashboard-card h-100 purple">
                     <div class="card-header">
                         <h5>Sanatçılarım</h5>
+                        <a href="{{ route('artists.create.step1') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Yeni Sanatçı Ekle
+                        </a>
                     </div>
                     <div class="card-body">
                         <div class="artist-list" id="artists-list">
@@ -543,11 +541,6 @@
                                 <p class="mt-2 text-muted">Sanatçılar yükleniyor...</p>
                             </div>
                         </div>
-                    </div>
-                    <div class="card-footer text-center">
-                        <a href="{{ route('artists.create.step1') }}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-plus me-1"></i> Yeni Sanatçı Ekle
-                        </a>
                     </div>
                 </div>
             </div>

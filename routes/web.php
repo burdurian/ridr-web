@@ -31,13 +31,18 @@ Route::middleware([ManagerAuth::class])->group(function () {
     // API Endpoint'leri
     Route::get('/api/artists', [DashboardController::class, 'getAssociatedArtists']);
     
+    // Sanatçı slug URL'i için özel rota (sanatçı resource rotasından ÖNCE tanımlanmalı)
+    Route::get('/artists/{slug}', [ArtistController::class, 'showBySlug'])->name('artists.show.slug')->where('slug', '[a-z0-9\-]+');
+    
     // Sanatçı yönetimi
-    Route::resource('artists', ArtistController::class);
+    Route::resource('artists', ArtistController::class)->except(['index']);
+    Route::get('/artists', [ArtistController::class, 'index'])->name('artists.index');
     
     // Sanatçı oluşturma aşamaları için ekstra rotalar
     Route::get('/artists/create/step1', [ArtistController::class, 'createStep1'])->name('artists.create.step1');
     Route::post('/artists/create/process-step1', [ArtistController::class, 'processStep1'])->name('artists.process.step1');
     Route::get('/artists/create/step2/{plan_id}', [ArtistController::class, 'createStep2'])->name('artists.create.step2');
+    Route::get('/artists/payment/success/{id}', [ArtistController::class, 'paymentSuccess'])->name('artists.payment.success');
 
     // Abonelik rotaları
     Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions.index');
