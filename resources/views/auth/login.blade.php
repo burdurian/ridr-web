@@ -51,7 +51,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('login.authenticate') }}" method="POST">
+            <form action="{{ route('login.post') }}" method="POST">
                 @csrf
                 <div class="mb-3">
                     <label for="phone" class="form-label">Telefon Numarası</label>

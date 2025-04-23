@@ -31,7 +31,7 @@ class AuthController extends Controller
     /**
      * Giriş işlemini gerçekleştirir
      */
-    public function authenticate(Request $request)
+    public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string',
