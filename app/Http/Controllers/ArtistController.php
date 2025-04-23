@@ -316,7 +316,29 @@ class ArtistController extends Controller
             $plan = $planResult[0];
         }
         
-        return view('artists.show', compact('artist', 'plan'));
+        // Ekip üyelerini çek
+        $teamResult = $this->supabaseService->rpc('get_users_for_artist', [
+            'artist_id_param' => $artist['artist_id']
+        ]);
+        
+        $teamMembers = [];
+        if (!isset($teamResult['error'])) {
+            $teamMembers = $teamResult;
+        }
+        
+        // Etkinlikleri çek
+        $eventsResult = $this->supabaseService->select('events', [
+            'event_artist' => 'eq.' . $artist['artist_id'],
+            'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
+            'order' => 'event_date.asc'
+        ]);
+        
+        $events = [];
+        if (!isset($eventsResult['error']) && !empty($eventsResult)) {
+            $events = $eventsResult;
+        }
+        
+        return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
     }
 
     /**
@@ -360,7 +382,19 @@ class ArtistController extends Controller
             $teamMembers = $teamResult;
         }
         
-        return view('artists.show', compact('artist', 'plan', 'teamMembers'));
+        // Etkinlikleri çek
+        $eventsResult = $this->supabaseService->select('events', [
+            'event_artist' => 'eq.' . $artist['artist_id'],
+            'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
+            'order' => 'event_date.asc'
+        ]);
+        
+        $events = [];
+        if (!isset($eventsResult['error']) && !empty($eventsResult)) {
+            $events = $eventsResult;
+        }
+        
+        return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
     }
 
     /**

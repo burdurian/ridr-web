@@ -388,6 +388,8 @@
             padding: 8px 12px;
             height: auto;
             border-radius: 8px;
+            width: 100px !important;
+            font-size: 14px;
         }
         
         .add-user-btn {
@@ -456,6 +458,131 @@
                 width: 100px !important;
                 font-size: 14px;
             }
+        }
+        
+        /* Etkinlik Stilleri */
+        .events-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 10px;
+        }
+        
+        .event-card {
+            display: flex;
+            background-color: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid #eaecef;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(108, 99, 255, 0.15);
+            border-color: #d8dbe4;
+        }
+        
+        .event-date {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 70px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-right: 1px solid #eaecef;
+        }
+        
+        .event-day {
+            font-size: 24px;
+            font-weight: 700;
+            color: #6c63ff;
+            line-height: 1;
+        }
+        
+        .event-month {
+            font-size: 14px;
+            font-weight: 500;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        
+        .event-image {
+            width: 80px;
+            height: 80px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .event-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .event-image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e9ecef;
+            color: #6c757d;
+            font-size: 24px;
+        }
+        
+        .event-details {
+            flex-grow: 1;
+            padding: 15px;
+        }
+        
+        .event-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #343a40;
+        }
+        
+        .event-meta {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .event-city-badge,
+        .event-type-badge {
+            font-size: 12px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background-color: #f1f2f6;
+            color: #6c757d;
+        }
+        
+        .event-city-badge {
+            background-color: #e3f2fd;
+            color: #0d6efd;
+        }
+        
+        .event-type-badge {
+            background-color: #fff3cd;
+            color: #ff9800;
+        }
+        
+        .empty-events-icon {
+            display: inline-block;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
         }
     </style>
 </head>
@@ -698,6 +825,61 @@
                             @endif
                         @else
                             <p class="text-muted">Abonelik bilgisi bulunamadı.</p>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Etkinlikler Bölümü -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="info-card">
+                    <div class="info-card-header d-flex justify-content-between align-items-center">
+                        <h4><i class="fas fa-calendar-alt me-2"></i> Yaklaşan Etkinlikler</h4>
+                        <span class="badge bg-primary">{{ count($events ?? []) }} Etkinlik</span>
+                    </div>
+                    <div class="info-card-body">
+                        @if(empty($events))
+                            <div class="empty-events-state text-center py-5">
+                                <div class="empty-events-icon mb-3">
+                                    <i class="fas fa-calendar-times text-muted" style="font-size: 48px; opacity: 0.3;"></i>
+                                </div>
+                                <h5 class="text-muted">Henüz Etkinlik Bulunmuyor</h5>
+                                <p class="text-muted mb-0">Etkinlikler mobil uygulama üzerinden oluşturulur</p>
+                            </div>
+                        @else
+                            <div class="events-grid">
+                                @foreach($events as $event)
+                                    @php
+                                        $eventDate = \Carbon\Carbon::parse($event['event_date']);
+                                        $day = $eventDate->format('d');
+                                        $month = $eventDate->locale('tr')->shortMonthName;
+                                    @endphp
+                                    <div class="event-card" data-event-id="{{ $event['event_id'] }}">
+                                        <div class="event-date">
+                                            <div class="event-day">{{ $day }}</div>
+                                            <div class="event-month">{{ $month }}</div>
+                                        </div>
+                                        <div class="event-image">
+                                            @if(!empty($event['event_image']))
+                                                <img src="{{ $event['event_image'] }}" alt="{{ $event['event_title'] }}">
+                                            @else
+                                                <div class="event-image-placeholder">
+                                                    <i class="fas fa-music"></i>
+                                                </div>
+                                            @endif
+                                        </div>
+                                        <div class="event-details">
+                                            <h5 class="event-title">{{ $event['event_title'] }}</h5>
+                                            <div class="event-meta">
+                                                <span class="event-city-badge">{{ $event['event_city'] }}</span>
+                                                <span class="event-type-badge">{{ $event['event_type'] }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
                         @endif
                     </div>
                 </div>
@@ -992,6 +1174,14 @@
                             alert('Bir hata oluştu. Lütfen tekrar deneyin.');
                         });
                     }
+                });
+            });
+            
+            // Etkinliklere tıklama işlevi
+            const eventCards = document.querySelectorAll('.event-card');
+            eventCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    alert('Etkinlik detaylarını görmek için Ridr uygulamasını kullanın');
                 });
             });
         });
