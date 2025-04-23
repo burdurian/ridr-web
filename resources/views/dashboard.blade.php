@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>RIDR - Menajer Paneli</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fc;
+            color: #2c3e50;
+        }
+
+        /* Navbar Stili */
+        .navbar {
+            background-color: #fff;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            padding: 15px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 24px;
+            color: #6c63ff;
+        }
+
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            color: #2c3e50;
+            padding: 10px 15px;
+            transition: all 0.3s;
+        }
+
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: #6c63ff;
+        }
+
+        .navbar-nav .nav-link i {
+            margin-right: 5px;
+        }
+
+        /* Menajer Profil Kartı */
+        .profile-card {
+            background: linear-gradient(135deg, #6c63ff 0%, #4a44e0 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 20px rgba(108, 99, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .profile-card::before {
+            content: "";
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            margin-right: 20px;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-image .placeholder {
+            font-size: 40px;
+            color: #6c63ff;
+        }
+
+        .profile-info h2 {
+            font-size: 28px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .profile-info .company {
+            font-size: 16px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+            font-weight: 300;
+        }
+
+        .profile-info .email {
+            font-size: 14px;
+            opacity: 0.7;
+            font-weight: 300;
+        }
+
+        .profile-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.8;
+            font-weight: 300;
+        }
+
+        /* Dashboard Kartlar */
+        .dashboard-card {
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            height: 100%;
+            transition: all 0.3s;
+            position: relative;
+            border: none;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-card .card-header {
+            background-color: transparent;
+            border-bottom: 0;
+            padding: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dashboard-card .card-header h5 {
+            font-weight: 600;
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .dashboard-card .card-header .card-icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+
+        .dashboard-card.purple .card-icon {
+            background: linear-gradient(135deg, #6c63ff 0%, #4a44e0 100%);
+        }
+
+        .dashboard-card.blue .card-icon {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+
+        .dashboard-card .card-body {
+            padding: 0;
+        }
+
+        .dashboard-card .card-text {
+            font-size: 15px;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .dashboard-card .card-footer {
+            background-color: transparent;
+            border-top: 0;
+            padding: 15px 0 0 0;
+        }
+
+        .dashboard-card .btn {
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .dashboard-card .btn-primary {
+            background-color: #6c63ff;
+            border-color: #6c63ff;
+        }
+
+        .dashboard-card .btn-primary:hover {
+            background-color: #5a52e0;
+            border-color: #5a52e0;
+        }
+
+        .dashboard-card .btn-outline-primary {
+            color: #6c63ff;
+            border-color: #6c63ff;
+        }
+
+        .dashboard-card .btn-outline-primary:hover {
+            background-color: #6c63ff;
+            border-color: #6c63ff;
+            color: white;
+        }
+
+        /* Sanatçı listesi */
+        .artist-list {
+            margin-top: 15px;
+        }
+
+        .artist-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            background-color: #ffffff;
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+        }
+
+        .artist-item:hover {
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            transform: translateY(-3px);
+        }
+
+        .artist-image {
+            width: 70px;
+            height: 70px;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-right: 18px;
+            background-color: #f1f2f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        .artist-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .artist-item:hover .artist-image img {
+            transform: scale(1.05);
+        }
+
+        .artist-image .placeholder {
+            font-size: 24px;
+            color: #6c63ff;
+        }
+
+        .artist-info {
+            flex: 1;
+        }
+
+        .artist-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #2c3e50;
+        }
+
+        .artist-genre {
+            font-size: 14px;
+            color: #7f8c8d;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Plan rozeti */
+        .plan-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .plan-badge.basic {
+            background-color: #e8f4fd;
+            color: #3498db;
+        }
+        
+        .plan-badge.premium {
+            background-color: #fdf2e9;
+            color: #e67e22;
+        }
+        
+        .plan-badge.pro {
+            background-color: #ebe7ff;
+            color: #6c63ff;
+        }
+
+        /* Duyurular */
+        .announcement {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f1f1;
+        }
+
+        .announcement:last-child {
+            border-bottom: none;
+        }
+
+        .announcement-title {
+            font-size: 15px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .announcement-date {
+            font-size: 12px;
+            color: #95a5a6;
+            margin-bottom: 5px;
+        }
+
+        .announcement-text {
+            font-size: 14px;
+            color: #7f8c8d;
+            line-height: 1.5;
+        }
+
+        /* Alt menü */
+        .footer {
+            margin-top: 40px;
+            padding: 20px 0;
+            text-align: center;
+            color: #95a5a6;
+            font-size: 14px;
+        }
+
+        /* Duyarlı tasarım ayarlamaları */
+        @media (max-width: 992px) {
+            .profile-card {
+                margin-bottom: 30px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .profile-image {
+                margin-right: 0;
+                margin-bottom: 15px;
+            }
+            
+            .profile-stats {
+                flex-wrap: wrap;
+            }
+            
+            .stat {
+                flex: 0 0 50%;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ route('dashboard') }}">RIDR</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ route('dashboard') }}">
+                            <i class="fas fa-home"></i> Ana Sayfa
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('artists.index') }}">
+                            <i class="fas fa-music"></i> Sanatçılarım
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('subscriptions.index') }}">
+                            <i class="fas fa-credit-card"></i> Abonelikler
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Ana İçerik -->
+    <div class="container my-4">
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        
+        @if(session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
+        <div class="row">
+            <!-- Sol taraf - Profil kartı -->
+            <div class="col-md-4">
+                <div class="profile-card">
+                    <div class="profile-header">
+                        <div class="profile-image">
+                            @if(isset(session('manager')['company_logo']) && session('manager')['company_logo'])
+                                <img src="{{ session('manager')['company_logo'] }}" alt="Profil">
+                            @else
+                                <div class="placeholder">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="profile-info">
+                            <h2>{{ session('manager')['manager_name'] }} {{ session('manager')['manager_surname'] }}</h2>
+                            @if(isset(session('manager')['company']) && session('manager')['company'])
+                                <div class="company">{{ session('manager')['company'] }}</div>
+                            @endif
+                            @if(isset(session('manager')['manager_email']) && session('manager')['manager_email'])
+                                <div class="email">{{ session('manager')['manager_email'] }}</div>
+                            @endif
+                        </div>
+                    </div>
+                    <div class="profile-stats">
+                        <div class="stat">
+                            <div class="stat-value" id="artist-count">0</div>
+                            <div class="stat-label">Sanatçı</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value" id="event-count">0</div>
+                            <div class="stat-label">Etkinlik</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Duyurular -->
+                <div class="dashboard-card blue">
+                    <div class="card-header">
+                        <h5>RIDR Duyuruları</h5>
+                        <div class="card-icon blue">
+                            <i class="fas fa-bullhorn"></i>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="announcement">
+                            <div class="announcement-title">Yeni Mobil Uygulama Çıktı!</div>
+                            <div class="announcement-date">15 Nisan 2024</div>
+                            <div class="announcement-text">
+                                RIDR mobil uygulamasının yeni sürümü yayınlandı.
+                            </div>
+                        </div>
+                        <div class="announcement">
+                            <div class="announcement-title">Abonelik Planlarında İndirim</div>
+                            <div class="announcement-date">10 Nisan 2024</div>
+                            <div class="announcement-text">
+                                Seçkin ve Sınırsız abonelik planlarında %15 indirim başladı.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ taraf -->
+            <div class="col-md-8">
+                <!-- Sanatçılarım -->
+                <div class="dashboard-card h-100 purple">
+                    <div class="card-header">
+                        <h5>Sanatçılarım</h5>
+                        <a href="{{ route('artists.create.step1') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Yeni Sanatçı Ekle
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="artist-list" id="artists-list">
+                            <!-- Sanatçı listesi sunucu tarafından doldurulacak -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Sanatçılar yükleniyor...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ route('artists.index') }}" class="btn btn-sm btn-outline-primary w-100">
+                            Tüm Sanatçıları Görüntüle
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div class="container">
+            <p>RIDR Menajer Paneli &copy; 2024 | Tüm Hakları Saklıdır</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sanatçı verilerini getir
+            fetch('/api/artists', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('API\'den gelen tüm veri:', data);
+                
+                if (data.error) {
+                    console.error("Sanatçılar yüklenirken hata oluştu:", data.error);
+                    document.getElementById('artists-list').innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-exclamation-circle text-danger" style="font-size: 40px;"></i>
+                            <p class="mt-2">Sanatçılar yüklenirken bir hata oluştu.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // İstatistikleri güncelle
+                document.getElementById('artist-count').textContent = data.length;
+                
+                // Sanatçıları listele
+                const artistContainer = document.getElementById('artists-list');
+                
+                if (data.length === 0) {
+                    artistContainer.innerHTML = `
+                        <div class="text-center py-4">
+                            <img src="https://cdn-icons-png.flaticon.com/512/3588/3588614.png" alt="Sanatçılar" style="width: 120px; opacity: 0.5;" class="mb-3">
+                            <p class="mb-0">Henüz hiç sanatçı eklenmemiş.</p>
+                            <p class="mt-1">
+                                <a href="{{ route('artists.create.step1') }}" class="btn btn-sm btn-primary mt-2">
+                                    <i class="fas fa-plus-circle me-1"></i> İlk Sanatçını Ekle
+                                </a>
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    artistContainer.innerHTML = '';
+                    
+                    // En fazla 6 sanatçı göster
+                    const displayCount = Math.min(data.length, 6);
+                    
+                    for (let i = 0; i < displayCount; i++) {
+                        const artist = data[i];
+                        const artistItem = document.createElement('div');
+                        artistItem.className = 'artist-item';
+                        
+                        // Plan bilgilerini al
+                        let planName = 'Temel';
+                        let planBadgeClass = 'basic';
+                        
+                        if (artist.plan && artist.plan.plan_name) {
+                            planName = artist.plan.plan_name;
+                            
+                            // Plan rozetinin sınıfını belirle
+                            if (planName.includes('Seçkin')) {
+                                planBadgeClass = 'premium';
+                            } else if (planName.includes('Sınırsız')) {
+                                planBadgeClass = 'pro';
+                            }
+                        }
+                        
+                        artistItem.innerHTML = `
+                            <div class="artist-image">
+                                ${artist.artist_image 
+                                    ? `<img src="${artist.artist_image}" alt="${artist.artist_name}">`
+                                    : `<div class="placeholder"><i class="fas fa-user"></i></div>`
+                                }
+                            </div>
+                            <div class="artist-info">
+                                <div class="artist-name">${artist.artist_name}</div>
+                                <div class="artist-genre">
+                                    ${artist.genre}
+                                    <span class="plan-badge ${planBadgeClass}">${planName}</span>
+                                </div>
+                            </div>
+                            <div class="ms-auto">
+                                <a href="{{ route('artists.index') }}/${artist.artist_id}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        `;
+                        
+                        artistContainer.appendChild(artistItem);
+                    }
+                    
+                    // Eğer daha fazla sanatçı varsa göster
+                    if (data.length > 6) {
+                        const moreItem = document.createElement('div');
+                        moreItem.className = 'text-center mt-3';
+                        moreItem.innerHTML = `
+                            <a href="{{ route('artists.index') }}" class="text-primary">
+                                ${data.length - 6} sanatçı daha göster...
+                            </a>
+                        `;
+                        artistContainer.appendChild(moreItem);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error("API hatası:", error);
+                document.getElementById('artists-list').innerHTML = `
+                    <div class="text-center py-4">
+                        <i class="fas fa-exclamation-circle text-danger" style="font-size: 40px;"></i>
+                        <p class="mt-2">Bağlantı hatası. Sanatçılar yüklenemedi.</p>
+                    </div>
+                `;
+            });
+
+            // Örnek istatistikler
+            document.getElementById('event-count').textContent = '0';
+        });
+    </script>
+</body>
+</html> 
