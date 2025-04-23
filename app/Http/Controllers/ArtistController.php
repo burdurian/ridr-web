@@ -330,7 +330,7 @@ class ArtistController extends Controller
         }
         
         // Etkinlikleri çekmeyi deneyelim ve sorguyu logla
-        \Log::info('Events sorgusu yapılıyor:', ['artist_id' => $artist['artist_id'], 'artist_id_type' => gettype($artist['artist_id'])]);
+        \Log::info('Events sorgusu yapılıyor:', ['artist_id' => $artist['artist_id']]);
         
         // Tüm etkinlikleri çek (sanatçı filtresiz)
         $allEventsResult = $this->supabaseService->select('events', [
@@ -345,106 +345,35 @@ class ArtistController extends Controller
             'first_items' => isset($allEventsResult['error']) ? [] : array_slice($allEventsResult, 0, 2)
         ]);
         
-        // Kaç tane event var ve artist_id'leri neler, bunu görelim
-        if (!isset($allEventsResult['error']) && !empty($allEventsResult)) {
-            $eventArtistIds = [];
-            foreach ($allEventsResult as $event) {
-                if (isset($event['event_artist'])) {
-                    $eventArtistIds[] = [
-                        'event_id' => $event['event_id'],
-                        'event_artist' => $event['event_artist'],
-                        'event_artist_type' => gettype($event['event_artist']),
-                        'event_title' => $event['event_title']
-                    ];
-                }
-            }
-            \Log::info('Events tablosunda bulunan event_artist ID\'leri:', $eventArtistIds);
-        }
-        
-        // Sanatçı ID'sine göre etkinlikleri çekmeyi deneyelim
-        // İlk olarak normal şekilde deneyelim
-        \Log::info('Normal şekilde event_artist araması:', ['event_artist' => 'eq.' . $artist['artist_id']]);
+        // Sanatçı ID'sine göre etkinlikleri çek - Burada artist_id değerini doğrudan sorguluyoruz
         $eventsResult = $this->supabaseService->select('events', [
             'event_artist' => 'eq.' . $artist['artist_id'],
             'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
             'order' => 'event_date.asc'
         ]);
         
-        \Log::info('Normal sorgu sonucu:', [
+        // Eğer sorguda hata varsa veya sonuç bulunamadıysa, artist_id'yi string olarak çevirip tekrar deneyelim
+        if (isset($eventsResult['error']) || empty($eventsResult)) {
+            \Log::info('İlk sorgu başarısız oldu, artist_id ile string olarak tekrar deneniyor');
+            
+            $eventsResult = $this->supabaseService->select('events', [
+                'event_artist' => 'eq.' . (string)$artist['artist_id'],
+                'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
+                'order' => 'event_date.asc'
+            ]);
+        }
+        
+        \Log::info('Sanatçıya göre filtrelenmiş etkinlik sorgusu sonucu:', [
             'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
             'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
         ]);
-        
-        // Eğer sonuç bulunamadıysa, artist_id tipini kontrol edelim ve string olarak deneyelim
-        if (isset($eventsResult['error']) || empty($eventsResult)) {
-            // String kopyasını oluştur
-            $artistIdString = (string)$artist['artist_id'];
-            \Log::info('String dönüşümü ile event_artist araması:', ['event_artist' => 'eq.' . $artistIdString]);
-            
-            $eventsResult = $this->supabaseService->select('events', [
-                'event_artist' => 'eq.' . $artistIdString,
-                'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
-                'order' => 'event_date.asc'
-            ]);
-            
-            \Log::info('String sorgu sonucu:', [
-                'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
-                'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
-            ]);
-        }
-        
-        // Yine bulunamazsa, sadece artist_id'nin bir kısmını içeriyor mu diye bakalım
-        if (isset($eventsResult['error']) || empty($eventsResult)) {
-            // event_artist sütununda artist_id'nin bir kısmını içeren kayıtları arayalım
-            $partialArtistId = substr($artist['artist_id'], 0, 8); // İlk 8 karakterini alalım
-            \Log::info('Kısmi eşleşme ile event_artist araması:', ['event_artist' => 'ilike.*' . $partialArtistId . '*']);
-            
-            $eventsResult = $this->supabaseService->select('events', [
-                'event_artist' => 'ilike.*' . $partialArtistId . '*',
-                'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
-                'order' => 'event_date.asc'
-            ]);
-            
-            \Log::info('Kısmi eşleşme sorgu sonucu:', [
-                'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
-                'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
-            ]);
-        }
         
         $events = [];
         if (!isset($eventsResult['error']) && !empty($eventsResult)) {
             $events = $eventsResult;
             \Log::info('Bulunan etkinlikler:', ['events' => $events]);
         } else {
-            // Demo amaçlı elle birkaç etkinlik ekleyelim
-            \Log::info('Etkinlik bulunamadı veya hata oluştu. Demo veriler ekleniyor.');
-            
-            // 3 ay ilerideki tarih
-            $demoDate1 = \Carbon\Carbon::now()->addMonths(3)->format('Y-m-d H:i:s');
-            // 4 ay ilerideki tarih
-            $demoDate2 = \Carbon\Carbon::now()->addMonths(4)->format('Y-m-d H:i:s');
-            
-            // Demo etkinlikler
-            $events = [
-                [
-                    'event_id' => 'demo1',
-                    'event_title' => 'Demo Etkinlik 1',
-                    'event_date' => $demoDate1,
-                    'event_city' => 'İstanbul',
-                    'event_type' => 'Konser',
-                    'event_image' => ''
-                ],
-                [
-                    'event_id' => 'demo2',
-                    'event_title' => 'Demo Etkinlik 2',
-                    'event_date' => $demoDate2,
-                    'event_city' => 'Ankara',
-                    'event_type' => 'Festival',
-                    'event_image' => ''
-                ]
-            ];
-            
-            \Log::info('Demo etkinlikler eklendi.');
+            \Log::info('Etkinlik bulunamadı veya hata oluştu');
         }
         
         return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
@@ -495,7 +424,7 @@ class ArtistController extends Controller
         }
         
         // Etkinlikleri çekmeyi deneyelim ve sorguyu logla
-        \Log::info('Events sorgusu yapılıyor:', ['artist_id' => $artist['artist_id'], 'artist_id_type' => gettype($artist['artist_id'])]);
+        \Log::info('Events sorgusu yapılıyor:', ['artist_id' => $artist['artist_id']]);
         
         // Tüm etkinlikleri çek (sanatçı filtresiz)
         $allEventsResult = $this->supabaseService->select('events', [
@@ -510,106 +439,35 @@ class ArtistController extends Controller
             'first_items' => isset($allEventsResult['error']) ? [] : array_slice($allEventsResult, 0, 2)
         ]);
         
-        // Kaç tane event var ve artist_id'leri neler, bunu görelim
-        if (!isset($allEventsResult['error']) && !empty($allEventsResult)) {
-            $eventArtistIds = [];
-            foreach ($allEventsResult as $event) {
-                if (isset($event['event_artist'])) {
-                    $eventArtistIds[] = [
-                        'event_id' => $event['event_id'],
-                        'event_artist' => $event['event_artist'],
-                        'event_artist_type' => gettype($event['event_artist']),
-                        'event_title' => $event['event_title']
-                    ];
-                }
-            }
-            \Log::info('Events tablosunda bulunan event_artist ID\'leri:', $eventArtistIds);
-        }
-        
-        // Sanatçı ID'sine göre etkinlikleri çekmeyi deneyelim
-        // İlk olarak normal şekilde deneyelim
-        \Log::info('Normal şekilde event_artist araması:', ['event_artist' => 'eq.' . $artist['artist_id']]);
+        // Sanatçı ID'sine göre etkinlikleri çek - Burada artist_id değerini doğrudan sorguluyoruz
         $eventsResult = $this->supabaseService->select('events', [
             'event_artist' => 'eq.' . $artist['artist_id'],
             'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
             'order' => 'event_date.asc'
         ]);
         
-        \Log::info('Normal sorgu sonucu:', [
+        // Eğer sorguda hata varsa veya sonuç bulunamadıysa, artist_id'yi string olarak çevirip tekrar deneyelim
+        if (isset($eventsResult['error']) || empty($eventsResult)) {
+            \Log::info('İlk sorgu başarısız oldu, artist_id ile string olarak tekrar deneniyor');
+            
+            $eventsResult = $this->supabaseService->select('events', [
+                'event_artist' => 'eq.' . (string)$artist['artist_id'],
+                'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
+                'order' => 'event_date.asc'
+            ]);
+        }
+        
+        \Log::info('Sanatçıya göre filtrelenmiş etkinlik sorgusu sonucu:', [
             'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
             'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
         ]);
-        
-        // Eğer sonuç bulunamadıysa, artist_id tipini kontrol edelim ve string olarak deneyelim
-        if (isset($eventsResult['error']) || empty($eventsResult)) {
-            // String kopyasını oluştur
-            $artistIdString = (string)$artist['artist_id'];
-            \Log::info('String dönüşümü ile event_artist araması:', ['event_artist' => 'eq.' . $artistIdString]);
-            
-            $eventsResult = $this->supabaseService->select('events', [
-                'event_artist' => 'eq.' . $artistIdString,
-                'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
-                'order' => 'event_date.asc'
-            ]);
-            
-            \Log::info('String sorgu sonucu:', [
-                'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
-                'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
-            ]);
-        }
-        
-        // Yine bulunamazsa, sadece artist_id'nin bir kısmını içeriyor mu diye bakalım
-        if (isset($eventsResult['error']) || empty($eventsResult)) {
-            // event_artist sütununda artist_id'nin bir kısmını içeren kayıtları arayalım
-            $partialArtistId = substr($artist['artist_id'], 0, 8); // İlk 8 karakterini alalım
-            \Log::info('Kısmi eşleşme ile event_artist araması:', ['event_artist' => 'ilike.*' . $partialArtistId . '*']);
-            
-            $eventsResult = $this->supabaseService->select('events', [
-                'event_artist' => 'ilike.*' . $partialArtistId . '*',
-                'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
-                'order' => 'event_date.asc'
-            ]);
-            
-            \Log::info('Kısmi eşleşme sorgu sonucu:', [
-                'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
-                'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
-            ]);
-        }
         
         $events = [];
         if (!isset($eventsResult['error']) && !empty($eventsResult)) {
             $events = $eventsResult;
             \Log::info('Bulunan etkinlikler:', ['events' => $events]);
         } else {
-            // Demo amaçlı elle birkaç etkinlik ekleyelim
-            \Log::info('Etkinlik bulunamadı veya hata oluştu. Demo veriler ekleniyor.');
-            
-            // 3 ay ilerideki tarih
-            $demoDate1 = \Carbon\Carbon::now()->addMonths(3)->format('Y-m-d H:i:s');
-            // 4 ay ilerideki tarih
-            $demoDate2 = \Carbon\Carbon::now()->addMonths(4)->format('Y-m-d H:i:s');
-            
-            // Demo etkinlikler
-            $events = [
-                [
-                    'event_id' => 'demo1',
-                    'event_title' => 'Demo Etkinlik 1',
-                    'event_date' => $demoDate1,
-                    'event_city' => 'İstanbul',
-                    'event_type' => 'Konser',
-                    'event_image' => ''
-                ],
-                [
-                    'event_id' => 'demo2',
-                    'event_title' => 'Demo Etkinlik 2',
-                    'event_date' => $demoDate2,
-                    'event_city' => 'Ankara',
-                    'event_type' => 'Festival',
-                    'event_image' => ''
-                ]
-            ];
-            
-            \Log::info('Demo etkinlikler eklendi.');
+            \Log::info('Etkinlik bulunamadı veya hata oluştu');
         }
         
         return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
