@@ -445,9 +445,6 @@
                 <div class="info-card">
                     <div class="info-card-header d-flex justify-content-between align-items-center">
                         <h4><i class="fas fa-users me-2"></i> Sanatçı Ekibi</h4>
-                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
-                            <i class="fas fa-user-plus me-1"></i> Yeni Üye Ekle
-                        </button>
                     </div>
                     <div class="info-card-body">
                         <div class="table-responsive">
@@ -502,6 +499,37 @@
                                         @endforeach
                                     @endif
                                 </tbody>
+                                <tfoot>
+                                    <tr>
+                                        <td colspan="3">
+                                            <div class="d-flex mt-3">
+                                                <input type="text" id="quickSearchPhone" class="form-control me-2" placeholder="Telefon numarası ile hızlı arama (5xxxxxxxxx)">
+                                                <select id="quickRoleSelect" class="form-select me-2" style="max-width: 120px;" disabled>
+                                                    <option value="member">Üye</option>
+                                                    <option value="admin">Yönetici</option>
+                                                </select>
+                                                <button id="quickAddBtn" class="btn btn-primary" disabled>
+                                                    <i class="fas fa-plus me-1"></i> Ekle
+                                                </button>
+                                            </div>
+                                            <div id="quickSearchResult" class="mt-2 d-none">
+                                                <div class="d-flex align-items-center p-2 border rounded">
+                                                    <div id="quickUserImgContainer" class="me-2">
+                                                        <img id="quickUserImg" src="" alt="" class="rounded-circle d-none" style="width: 40px; height: 40px; object-fit: cover;">
+                                                        <div id="quickUserDefaultImg" class="rounded-circle bg-light d-flex align-items-center justify-content-center d-none" style="width: 40px; height: 40px;">
+                                                            <i class="fas fa-user text-secondary"></i>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h6 id="quickUserName" class="mb-0"></h6>
+                                                        <small id="quickUserPhone" class="text-muted"></small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="quickSearchError" class="alert alert-danger mt-2 d-none"></div>
+                                        </td>
+                                    </tr>
+                                </tfoot>
                             </table>
                         </div>
                     </div>
@@ -510,97 +538,43 @@
         </div>
     </div>
     
-    <!-- Yeni Ekip Üyesi Ekleme Modal -->
-    <div class="modal fade" id="addTeamMemberModal" tabindex="-1" aria-labelledby="addTeamMemberModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="addTeamMemberModalLabel">Yeni Ekip Üyesi Ekle</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="search-container mb-4">
-                        <label for="phone" class="form-label">Telefon Numarası</label>
-                        <div class="input-group mb-3">
-                            <input type="text" class="form-control" id="phone" placeholder="5xxxxxxxxx, 05xxxxxxxxx veya +905xxxxxxxxx">
-                            <button class="btn btn-primary" type="button" id="searchUserBtn">
-                                <i class="fas fa-search"></i> Ara
-                            </button>
-                        </div>
-                        <small class="form-text text-muted">Kullanıcının sisteme kayıtlı telefon numarasını girin.</small>
-                    </div>
-                    
-                    <div id="userSearchResult" class="d-none">
-                        <div class="alert alert-danger d-none" id="searchError"></div>
-                        
-                        <div class="card mb-3 d-none" id="userCard">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div class="user-image-container me-3">
-                                        <img src="" alt="" class="rounded-circle d-none" id="userImage" style="width: 60px; height: 60px; object-fit: cover;">
-                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center d-none" id="userDefaultImage" style="width: 60px; height: 60px;">
-                                            <i class="fas fa-user text-secondary fa-2x"></i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h5 class="card-title mb-1" id="userName"></h5>
-                                        <p class="card-text mb-0 text-muted" id="userPhone"></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3 d-none" id="roleSelection">
-                            <label class="form-label">Kullanıcı Rolü</label>
-                            <div class="form-check mb-2">
-                                <input class="form-check-input" type="radio" name="userRole" id="roleMember" value="member" checked>
-                                <label class="form-check-label" for="roleMember">
-                                    <i class="fas fa-user me-1"></i> Üye
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="userRole" id="roleAdmin" value="admin">
-                                <label class="form-check-label" for="roleAdmin">
-                                    <i class="fas fa-user-shield me-1"></i> Yönetici
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="button" class="btn btn-primary" id="addUserBtn" disabled>Ekle</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Telefon numarasıyla kullanıcı arama
-            const searchUserBtn = document.getElementById('searchUserBtn');
-            const phoneInput = document.getElementById('phone');
-            const searchResult = document.getElementById('userSearchResult');
-            const searchError = document.getElementById('searchError');
-            const userCard = document.getElementById('userCard');
-            const userImage = document.getElementById('userImage');
-            const userDefaultImage = document.getElementById('userDefaultImage');
-            const userName = document.getElementById('userName');
-            const userPhone = document.getElementById('userPhone');
-            const roleSelection = document.getElementById('roleSelection');
-            const addUserBtn = document.getElementById('addUserBtn');
-            let currentUserId = null;
+            // Hızlı arama ve ekleme işlemleri
+            const quickSearchPhone = document.getElementById('quickSearchPhone');
+            const quickRoleSelect = document.getElementById('quickRoleSelect');
+            const quickAddBtn = document.getElementById('quickAddBtn');
+            const quickSearchResult = document.getElementById('quickSearchResult');
+            const quickSearchError = document.getElementById('quickSearchError');
+            const quickUserImg = document.getElementById('quickUserImg');
+            const quickUserDefaultImg = document.getElementById('quickUserDefaultImg');
+            const quickUserName = document.getElementById('quickUserName');
+            const quickUserPhone = document.getElementById('quickUserPhone');
+            let quickCurrentUserId = null;
             
-            searchUserBtn.addEventListener('click', function() {
-                const phone = phoneInput.value.trim();
-                
-                if (!phone) {
-                    showSearchError('Lütfen bir telefon numarası girin.');
-                    return;
+            // Telefon numarası girişi için event listener
+            quickSearchPhone.addEventListener('input', function() {
+                if (this.value.trim().length >= 10) {
+                    // Otomatik arama yap
+                    searchUser(this.value.trim());
+                } else {
+                    // Sonuçları temizle
+                    resetQuickSearch();
+                    quickAddBtn.disabled = true;
+                    quickRoleSelect.disabled = true;
                 }
-                
-                // Kullanıcı arama isteği gönder
+            });
+            
+            // Enter tuşu ile arama
+            quickSearchPhone.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && this.value.trim().length >= 5) {
+                    searchUser(this.value.trim());
+                }
+            });
+            
+            // Kullanıcı arama fonksiyonu
+            function searchUser(phone) {
                 fetch('/api/artists/find-user', {
                     method: 'POST',
                     headers: {
@@ -613,58 +587,62 @@
                 .then(data => {
                     if (data.success) {
                         // Kullanıcı bulundu
-                        showUserData(data.user);
+                        showQuickUserData(data.user);
                     } else {
                         // Kullanıcı bulunamadı
-                        showSearchError(data.message);
+                        showQuickSearchError(data.message);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showSearchError('Bir hata oluştu. Lütfen tekrar deneyin.');
+                    showQuickSearchError('Bir hata oluştu. Lütfen tekrar deneyin.');
                 });
-            });
+            }
             
             // Kullanıcı bulunduğunda verileri göster
-            function showUserData(user) {
-                searchResult.classList.remove('d-none');
-                searchError.classList.add('d-none');
-                userCard.classList.remove('d-none');
-                roleSelection.classList.remove('d-none');
-                addUserBtn.disabled = false;
+            function showQuickUserData(user) {
+                quickSearchResult.classList.remove('d-none');
+                quickSearchError.classList.add('d-none');
+                quickAddBtn.disabled = false;
+                quickRoleSelect.disabled = false;
                 
                 // Kullanıcı bilgilerini doldur
                 if (user.user_img) {
-                    userImage.src = user.user_img;
-                    userImage.alt = user.user_name;
-                    userImage.classList.remove('d-none');
-                    userDefaultImage.classList.add('d-none');
+                    quickUserImg.src = user.user_img;
+                    quickUserImg.alt = user.user_name;
+                    quickUserImg.classList.remove('d-none');
+                    quickUserDefaultImg.classList.add('d-none');
                 } else {
-                    userImage.classList.add('d-none');
-                    userDefaultImage.classList.remove('d-none');
+                    quickUserImg.classList.add('d-none');
+                    quickUserDefaultImg.classList.remove('d-none');
                 }
                 
-                userName.textContent = `${user.user_name} ${user.user_surname}`;
-                userPhone.textContent = user.phone;
-                currentUserId = user.user_id;
+                quickUserName.textContent = `${user.user_name} ${user.user_surname}`;
+                quickUserPhone.textContent = user.phone;
+                quickCurrentUserId = user.user_id;
             }
             
             // Arama hatası göster
-            function showSearchError(message) {
-                searchResult.classList.remove('d-none');
-                searchError.classList.remove('d-none');
-                searchError.textContent = message;
-                userCard.classList.add('d-none');
-                roleSelection.classList.add('d-none');
-                addUserBtn.disabled = true;
-                currentUserId = null;
+            function showQuickSearchError(message) {
+                quickSearchResult.classList.add('d-none');
+                quickSearchError.classList.remove('d-none');
+                quickSearchError.textContent = message;
+                quickAddBtn.disabled = true;
+                quickRoleSelect.disabled = true;
+                quickCurrentUserId = null;
+            }
+            
+            // Arama sonuçlarını sıfırla
+            function resetQuickSearch() {
+                quickSearchResult.classList.add('d-none');
+                quickSearchError.classList.add('d-none');
             }
             
             // Kullanıcı ekleme butonu
-            addUserBtn.addEventListener('click', function() {
-                if (!currentUserId) return;
+            quickAddBtn.addEventListener('click', function() {
+                if (!quickCurrentUserId) return;
                 
-                const role = document.querySelector('input[name="userRole"]:checked').value;
+                const role = quickRoleSelect.value;
                 
                 // Ekip üyesi ekleme isteği gönder
                 fetch('/api/artists/{{ $artist["artist_id"] }}/team/add', {
@@ -674,7 +652,7 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
                     body: JSON.stringify({
-                        user_id: currentUserId,
+                        user_id: quickCurrentUserId,
                         role: role
                     })
                 })
@@ -684,12 +662,12 @@
                         // Başarılı ise sayfayı yenile
                         window.location.reload();
                     } else {
-                        alert(data.message);
+                        showQuickSearchError(data.message);
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                    showQuickSearchError('Bir hata oluştu. Lütfen tekrar deneyin.');
                 });
             });
             

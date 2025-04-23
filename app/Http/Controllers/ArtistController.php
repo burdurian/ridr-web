@@ -609,9 +609,9 @@ class ArtistController extends Controller
                 $admins[] = $userId;
             }
             
-            // Normal üyelerden kaldır (bir kişi hem üye hem admin olamaz)
-            if (in_array($userId, $members)) {
-                $members = array_diff($members, [$userId]);
+            // Yönetici rolündeki kullanıcılar hem admin hem de member olarak eklenecek
+            if (!in_array($userId, $members)) {
+                $members[] = $userId;
             }
         } else {
             // Eğer kullanıcı zaten normal üye değilse ekle
@@ -796,8 +796,10 @@ class ArtistController extends Controller
                 $admins[] = $userId;
             }
             
-            // Kullanıcıyı normal üye dizisinden çıkar
-            $members = array_diff($members, [$userId]);
+            // Yönetici olan kullanıcılar aynı zamanda member listesinde de olacak
+            if (!in_array($userId, $members)) {
+                $members[] = $userId;
+            }
         } else {
             // Kullanıcıyı normal üye dizisine ekle
             if (!in_array($userId, $members)) {
