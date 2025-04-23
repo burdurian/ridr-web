@@ -305,6 +305,9 @@ class ArtistController extends Controller
         
         $artist = $result[0];
         
+        // Sanatçı ID'sini logla
+        \Log::info('Sanatçı ID değeri:', ['artist_id' => $artist['artist_id']]);
+        
         // Abonelik planı bilgilerini çek
         $planResult = $this->supabaseService->select('subscription_plans', [
             'plan_id' => 'eq.' . $artist['subscription_plan'],
@@ -326,16 +329,40 @@ class ArtistController extends Controller
             $teamMembers = $teamResult;
         }
         
-        // Etkinlikleri çek
+        // Etkinlikleri çekmeyi deneyelim ve sorguyu logla
+        \Log::info('Events sorgusu yapılıyor:', ['artist_id' => $artist['artist_id']]);
+        
+        // Tüm etkinlikleri çek (sanatçı filtresiz)
+        $allEventsResult = $this->supabaseService->select('events', [
+            'select' => 'event_id,event_title,event_date,event_city,event_type,event_image,event_artist',
+            'order' => 'event_date.asc',
+            'limit' => 5
+        ]);
+        
+        \Log::info('Tüm etkinlikler sorgusu sonucu:', [
+            'count' => isset($allEventsResult['error']) ? 0 : count($allEventsResult),
+            'error' => isset($allEventsResult['error']) ? $allEventsResult['error'] : null,
+            'first_items' => isset($allEventsResult['error']) ? [] : array_slice($allEventsResult, 0, 2)
+        ]);
+        
+        // Sanatçı ID'sine göre etkinlikleri çek
         $eventsResult = $this->supabaseService->select('events', [
             'event_artist' => 'eq.' . $artist['artist_id'],
             'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
             'order' => 'event_date.asc'
         ]);
         
+        \Log::info('Sanatçıya göre filtrelenmiş etkinlik sorgusu sonucu:', [
+            'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
+            'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
+        ]);
+        
         $events = [];
         if (!isset($eventsResult['error']) && !empty($eventsResult)) {
             $events = $eventsResult;
+            \Log::info('Bulunan etkinlikler:', ['events' => $events]);
+        } else {
+            \Log::info('Etkinlik bulunamadı veya hata oluştu');
         }
         
         return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
@@ -361,6 +388,9 @@ class ArtistController extends Controller
         
         $artist = $result[0];
         
+        // Sanatçı ID'sini logla
+        \Log::info('Sanatçı ID değeri:', ['artist_id' => $artist['artist_id']]);
+        
         // Abonelik planı bilgilerini çek
         $planResult = $this->supabaseService->select('subscription_plans', [
             'plan_id' => 'eq.' . $artist['subscription_plan'],
@@ -382,16 +412,40 @@ class ArtistController extends Controller
             $teamMembers = $teamResult;
         }
         
-        // Etkinlikleri çek
+        // Etkinlikleri çekmeyi deneyelim ve sorguyu logla
+        \Log::info('Events sorgusu yapılıyor:', ['artist_id' => $artist['artist_id']]);
+        
+        // Tüm etkinlikleri çek (sanatçı filtresiz)
+        $allEventsResult = $this->supabaseService->select('events', [
+            'select' => 'event_id,event_title,event_date,event_city,event_type,event_image,event_artist',
+            'order' => 'event_date.asc',
+            'limit' => 5
+        ]);
+        
+        \Log::info('Tüm etkinlikler sorgusu sonucu:', [
+            'count' => isset($allEventsResult['error']) ? 0 : count($allEventsResult),
+            'error' => isset($allEventsResult['error']) ? $allEventsResult['error'] : null,
+            'first_items' => isset($allEventsResult['error']) ? [] : array_slice($allEventsResult, 0, 2)
+        ]);
+        
+        // Sanatçı ID'sine göre etkinlikleri çek
         $eventsResult = $this->supabaseService->select('events', [
             'event_artist' => 'eq.' . $artist['artist_id'],
             'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
             'order' => 'event_date.asc'
         ]);
         
+        \Log::info('Sanatçıya göre filtrelenmiş etkinlik sorgusu sonucu:', [
+            'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
+            'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
+        ]);
+        
         $events = [];
         if (!isset($eventsResult['error']) && !empty($eventsResult)) {
             $events = $eventsResult;
+            \Log::info('Bulunan etkinlikler:', ['events' => $events]);
+        } else {
+            \Log::info('Etkinlik bulunamadı veya hata oluştu');
         }
         
         return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
