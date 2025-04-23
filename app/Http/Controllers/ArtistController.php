@@ -18,61 +18,12 @@ class ArtistController extends Controller
     }
 
     /**
-     * Sanatçı listesini gösterir
+     * Sanatçı listesini gösterir (dashboard'a yönlendirildi)
      */
     public function index()
     {
-        $manager = Session::get('manager');
-        
-        $result = $this->supabaseService->rpc('get_associated_artists', [
-            'user_id' => $manager['manager_id'],
-            'user_type' => 'manager'
-        ]);
-        
-        $artists = [];
-        
-        if (!isset($result['error']) && !empty($result)) {
-            $artists = $result;
-            
-            // Abonelik planlarını yükle
-            $planIds = array_reduce($artists, function($carry, $artist) {
-                if (isset($artist['subscription_plan']) && $artist['subscription_plan']) {
-                    $carry[] = $artist['subscription_plan'];
-                }
-                return $carry;
-            }, []);
-            
-            $planIds = array_unique($planIds);
-            
-            if (!empty($planIds)) {
-                $planIdsFormatted = implode(',', array_map(function($id) {
-                    return "'" . $id . "'";
-                }, $planIds));
-                
-                $planResult = $this->supabaseService->select('subscription_plans', [
-                    'plan_id' => 'in.(' . $planIdsFormatted . ')',
-                    'select' => 'plan_id,plan_name,max_members,monthly_price,annual_price,price_currency',
-                ]);
-                
-                if (!isset($planResult['error']) && !empty($planResult)) {
-                    $plans = [];
-                    foreach ($planResult as $plan) {
-                        $plans[$plan['plan_id']] = $plan;
-                    }
-                    
-                    // Sanatçılara plan bilgilerini ekle
-                    foreach ($artists as &$artist) {
-                        if (isset($artist['subscription_plan']) && isset($plans[$artist['subscription_plan']])) {
-                            $artist['plan'] = $plans[$artist['subscription_plan']];
-                        } else {
-                            $artist['plan'] = null;
-                        }
-                    }
-                }
-            }
-        }
-        
-        return view('artists.index', compact('artists'));
+        // Sanatçılar sayfası yerine dashboard'a yönlendirme yapıyoruz
+        return redirect()->route('dashboard');
     }
 
     /**
@@ -207,6 +158,16 @@ class ArtistController extends Controller
         $plan = $planResult[0];
         $manager = Session::get('manager');
         
+        // Menajer fatura bilgilerini çek
+        $managerDetailsResult = $this->supabaseService->select('managers', [
+            'manager_id' => 'eq.' . $manager['manager_id'],
+            'select' => 'manager_tax_kimlikno,company_tax_number,company_tax_office,company_legal_name',
+        ]);
+        
+        if (!isset($managerDetailsResult['error']) && !empty($managerDetailsResult)) {
+            $manager = array_merge($manager, $managerDetailsResult[0]);
+        }
+        
         return view('artists.create_step2', compact('artistData', 'plan', 'manager'));
     }
 
@@ -228,6 +189,29 @@ class ArtistController extends Controller
         // Payment sonucunu kontrol et - Bu örnekte ödeme başarılı kabul ediyoruz
         // Gerçek uygulamada, İyzico veya başka bir ödeme geçidi entegrasyonu olacaktır
         
+        // Menajer fatura bilgilerini güncelle
+        $managerUpdateData = [];
+        $billingType = $request->input('billing_type', 'personal');
+        
+        if ($billingType === 'personal') {
+            $managerUpdateData['manager_tax_kimlikno'] = $request->input('billing_identity_number');
+            // Eğer daha önce kurumsal bilgi varsa ve şimdi bireysel seçildiyse, kurumsal bilgileri NULL yap
+            $managerUpdateData['company_tax_number'] = null;
+            $managerUpdateData['company_tax_office'] = null;
+            $managerUpdateData['company_legal_name'] = null;
+        } else {
+            $managerUpdateData['company_tax_number'] = $request->input('billing_tax_number');
+            $managerUpdateData['company_tax_office'] = $request->input('billing_tax_office');
+            $managerUpdateData['company_legal_name'] = $request->input('billing_company_name');
+            // Eğer daha önce bireysel bilgi varsa ve şimdi kurumsal seçildiyse, bireysel bilgileri NULL yap
+            $managerUpdateData['manager_tax_kimlikno'] = null;
+        }
+        
+        // Menajer bilgilerini güncelle
+        $this->supabaseService->update('managers', $managerUpdateData, [
+            'manager_id' => 'eq.' . $manager['manager_id']
+        ]);
+        
         // Sanatçı verisini hazırla
         $artistData['related_manager'] = $manager['manager_id'];
         
@@ -239,11 +223,66 @@ class ArtistController extends Controller
                 ->with('error', 'Sanatçı oluşturulurken bir hata oluştu: ' . $result['error']);
         }
         
+        // Oluşturulan sanatçı bilgilerini al
+        $createdArtist = $result[0] ?? null;
+        
+        // Abonelik plan bilgilerini çek
+        $planInfo = null;
+        if ($createdArtist && isset($createdArtist['subscription_plan'])) {
+            $planResult = $this->supabaseService->select('subscription_plans', [
+                'plan_id' => 'eq.' . $createdArtist['subscription_plan'],
+                'select' => 'plan_id,plan_name,monthly_price,price_currency'
+            ]);
+            
+            if (!isset($planResult['error']) && !empty($planResult)) {
+                $planInfo = $planResult[0];
+            }
+        }
+        
         // Session'daki geçici verileri temizle
         Session::forget('artist_creation_data');
         
-        return redirect()->route('artists.index')
-            ->with('success', 'Sanatçı başarıyla oluşturuldu ve abonelik aktifleştirildi.');
+        // Başarı sayfasına yönlendir
+        return redirect()->route('artists.payment.success', ['id' => $createdArtist['artist_id']])
+            ->with('plan', $planInfo);
+    }
+
+    /**
+     * Ödeme başarılı sayfasını gösterir
+     */
+    public function paymentSuccess($id)
+    {
+        $manager = Session::get('manager');
+        
+        // Sanatçı bilgilerini çek
+        $result = $this->supabaseService->select('artists', [
+            'artist_id' => 'eq.' . $id,
+            'related_manager' => 'eq.' . $manager['manager_id'],
+            'select' => '*'
+        ]);
+        
+        if (isset($result['error']) || empty($result)) {
+            return redirect()->route('artists.index')
+                ->with('error', 'Sanatçı bulunamadı veya bu sanatçıya erişim izniniz yok.');
+        }
+        
+        $artist = $result[0];
+        
+        // Abonelik planı bilgilerini çek (eğer session'da yoksa)
+        $plan = Session::get('plan');
+        
+        if (!$plan) {
+            $planResult = $this->supabaseService->select('subscription_plans', [
+                'plan_id' => 'eq.' . $artist['subscription_plan'],
+                'select' => 'plan_id,plan_name,monthly_price,price_currency'
+            ]);
+            
+            if (!isset($planResult['error']) && !empty($planResult)) {
+                $plan = $planResult[0];
+            }
+        }
+        
+        return view('artists.payment_success', compact('artist', 'plan'));
     }
 
     /**
@@ -255,6 +294,40 @@ class ArtistController extends Controller
         
         $result = $this->supabaseService->select('artists', [
             'artist_id' => 'eq.' . $id,
+            'related_manager' => 'eq.' . $manager['manager_id'],
+            'select' => '*'
+        ]);
+        
+        if (isset($result['error']) || empty($result)) {
+            return redirect()->route('artists.index')
+                ->with('error', 'Sanatçı bulunamadı veya bu sanatçıya erişim izniniz yok.');
+        }
+        
+        $artist = $result[0];
+        
+        // Abonelik planı bilgilerini çek
+        $planResult = $this->supabaseService->select('subscription_plans', [
+            'plan_id' => 'eq.' . $artist['subscription_plan'],
+            'select' => '*'
+        ]);
+        
+        $plan = null;
+        if (!isset($planResult['error']) && !empty($planResult)) {
+            $plan = $planResult[0];
+        }
+        
+        return view('artists.show', compact('artist', 'plan'));
+    }
+
+    /**
+     * Sanatçıyı slug ile bulup detay sayfasını gösterir
+     */
+    public function showBySlug($slug)
+    {
+        $manager = Session::get('manager');
+        
+        $result = $this->supabaseService->select('artists', [
+            'artist_slug' => 'eq.' . $slug,
             'related_manager' => 'eq.' . $manager['manager_id'],
             'select' => '*'
         ]);
@@ -391,7 +464,7 @@ class ArtistController extends Controller
                 ->withInput();
         }
         
-        return redirect()->route('artists.show', $id)
+        return redirect()->route('artists.show.slug', $artist['artist_slug'])
             ->with('success', 'Sanatçı bilgileri başarıyla güncellendi.');
     }
 

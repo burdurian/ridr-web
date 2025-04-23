@@ -33,6 +33,11 @@
             color: #6c63ff;
         }
 
+        .navbar-brand img {
+            height: 35px;
+            margin-right: 10px;
+        }
+
         .navbar-nav .nav-link {
             font-weight: 500;
             color: #2c3e50;
@@ -406,7 +411,9 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">RIDR</a>
+            <a class="navbar-brand" href="{{ route('dashboard') }}">
+                <img src="/ridrlogo.svg" alt="RIDR Logo">
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -525,9 +532,6 @@
                 <div class="dashboard-card h-100 purple">
                     <div class="card-header">
                         <h5>Sanatçılarım</h5>
-                        <a href="{{ route('artists.create.step1') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus me-1"></i> Yeni Sanatçı Ekle
-                        </a>
                     </div>
                     <div class="card-body">
                         <div class="artist-list" id="artists-list">
@@ -540,9 +544,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer">
-                        <a href="{{ route('artists.index') }}" class="btn btn-sm btn-outline-primary w-100">
-                            Tüm Sanatçıları Görüntüle
+                    <div class="card-footer text-center">
+                        <a href="{{ route('artists.create.step1') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-plus me-1"></i> Yeni Sanatçı Ekle
                         </a>
                     </div>
                 </div>
@@ -604,10 +608,8 @@
                 } else {
                     artistContainer.innerHTML = '';
                     
-                    // En fazla 6 sanatçı göster
-                    const displayCount = Math.min(data.length, 6);
-                    
-                    for (let i = 0; i < displayCount; i++) {
+                    // Tüm sanatçıları göster (limit kaldırıldı)
+                    for (let i = 0; i < data.length; i++) {
                         const artist = data[i];
                         const artistItem = document.createElement('div');
                         artistItem.className = 'artist-item';
@@ -642,25 +644,13 @@
                                 </div>
                             </div>
                             <div class="ms-auto">
-                                <a href="{{ route('artists.index') }}/${artist.artist_id}" class="btn btn-sm btn-outline-primary">
+                                <a href="/artists/${artist.artist_slug}" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-eye"></i>
                                 </a>
                             </div>
                         `;
                         
                         artistContainer.appendChild(artistItem);
-                    }
-                    
-                    // Eğer daha fazla sanatçı varsa göster
-                    if (data.length > 6) {
-                        const moreItem = document.createElement('div');
-                        moreItem.className = 'text-center mt-3';
-                        moreItem.innerHTML = `
-                            <a href="{{ route('artists.index') }}" class="text-primary">
-                                ${data.length - 6} sanatçı daha göster...
-                            </a>
-                        `;
-                        artistContainer.appendChild(moreItem);
                     }
                 }
             })
