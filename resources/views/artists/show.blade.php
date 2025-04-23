@@ -852,18 +852,54 @@
                             <div class="events-grid">
                                 @foreach($events as $event)
                                     @php
-                                        $eventDate = \Carbon\Carbon::parse($event['event_date']);
+                                        // Bağlantı adları farklı olabileceği için kontrol ederek kullan
+                                        $eventDate = isset($event['eventDate']) 
+                                            ? \Carbon\Carbon::parse($event['eventDate']) 
+                                            : (isset($event['event_date']) 
+                                                ? \Carbon\Carbon::parse($event['event_date']) 
+                                                : \Carbon\Carbon::now());
+                                        
                                         $day = $eventDate->format('d');
                                         $month = $eventDate->locale('tr')->shortMonthName;
+                                        
+                                        $eventTitle = isset($event['eventTitle']) 
+                                            ? $event['eventTitle'] 
+                                            : (isset($event['event_title']) 
+                                                ? $event['event_title'] 
+                                                : 'Etkinlik Adı');
+                                                
+                                        $eventCity = isset($event['eventCity']) 
+                                            ? $event['eventCity'] 
+                                            : (isset($event['event_city']) 
+                                                ? $event['event_city'] 
+                                                : 'Şehir');
+                                                
+                                        $eventType = isset($event['eventType']) 
+                                            ? $event['eventType'] 
+                                            : (isset($event['event_type']) 
+                                                ? $event['event_type'] 
+                                                : 'Tür');
+                                                
+                                        $eventImage = isset($event['eventImage']) 
+                                            ? $event['eventImage'] 
+                                            : (isset($event['event_image']) 
+                                                ? $event['event_image'] 
+                                                : '');
+                                        
+                                        $eventId = isset($event['eventId']) 
+                                            ? $event['eventId'] 
+                                            : (isset($event['event_id']) 
+                                                ? $event['event_id'] 
+                                                : '');
                                     @endphp
-                                    <div class="event-card" data-event-id="{{ $event['event_id'] }}">
+                                    <div class="event-card" data-event-id="{{ $eventId }}">
                                         <div class="event-date">
                                             <div class="event-day">{{ $day }}</div>
                                             <div class="event-month">{{ $month }}</div>
                                         </div>
                                         <div class="event-image">
-                                            @if(!empty($event['event_image']))
-                                                <img src="{{ $event['event_image'] }}" alt="{{ $event['event_title'] }}">
+                                            @if(!empty($eventImage))
+                                                <img src="{{ $eventImage }}" alt="{{ $eventTitle }}">
                                             @else
                                                 <div class="event-image-placeholder">
                                                     <i class="fas fa-music"></i>
@@ -871,10 +907,10 @@
                                             @endif
                                         </div>
                                         <div class="event-details">
-                                            <h5 class="event-title">{{ $event['event_title'] }}</h5>
+                                            <h5 class="event-title">{{ $eventTitle }}</h5>
                                             <div class="event-meta">
-                                                <span class="event-city-badge">{{ $event['event_city'] }}</span>
-                                                <span class="event-type-badge">{{ $event['event_type'] }}</span>
+                                                <span class="event-city-badge">{{ $eventCity }}</span>
+                                                <span class="event-type-badge">{{ $eventType }}</span>
                                             </div>
                                         </div>
                                     </div>

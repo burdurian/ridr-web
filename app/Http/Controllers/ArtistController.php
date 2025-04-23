@@ -332,48 +332,28 @@ class ArtistController extends Controller
         // Etkinlikleri çekmeyi deneyelim ve sorguyu logla
         \Log::info('Events sorgusu yapılıyor:', ['artist_id' => $artist['artist_id']]);
         
-        // Tüm etkinlikleri çek (sanatçı filtresiz)
-        $allEventsResult = $this->supabaseService->select('events', [
-            'select' => 'event_id,event_title,event_date,event_city,event_type,event_image,event_artist',
-            'order' => 'event_date.asc',
-            'limit' => 5
-        ]);
-        
-        \Log::info('Tüm etkinlikler sorgusu sonucu:', [
-            'count' => isset($allEventsResult['error']) ? 0 : count($allEventsResult),
-            'error' => isset($allEventsResult['error']) ? $allEventsResult['error'] : null,
-            'first_items' => isset($allEventsResult['error']) ? [] : array_slice($allEventsResult, 0, 2)
-        ]);
-        
-        // Sanatçı ID'sine göre etkinlikleri çek - Burada artist_id değerini doğrudan sorguluyoruz
-        $eventsResult = $this->supabaseService->select('events', [
-            'event_artist' => 'eq.' . $artist['artist_id'],
-            'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
-            'order' => 'event_date.asc'
-        ]);
-        
-        // Eğer sorguda hata varsa veya sonuç bulunamadıysa, artist_id'yi string olarak çevirip tekrar deneyelim
-        if (isset($eventsResult['error']) || empty($eventsResult)) {
-            \Log::info('İlk sorgu başarısız oldu, artist_id ile string olarak tekrar deneniyor');
-            
+        // Sütun adlarıyla ilgili hatalar olduğu için basitleştirilmiş bir sorgu kullanalım
+        // order seçeneğini kaldırdık ve tüm sütunları getiriyoruz
+        try {
             $eventsResult = $this->supabaseService->select('events', [
-                'event_artist' => 'eq.' . (string)$artist['artist_id'],
-                'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
-                'order' => 'event_date.asc'
+                'event_artist' => 'eq.' . $artist['artist_id'],
+                'select' => '*'
             ]);
-        }
-        
-        \Log::info('Sanatçıya göre filtrelenmiş etkinlik sorgusu sonucu:', [
-            'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
-            'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
-        ]);
-        
-        $events = [];
-        if (!isset($eventsResult['error']) && !empty($eventsResult)) {
-            $events = $eventsResult;
-            \Log::info('Bulunan etkinlikler:', ['events' => $events]);
-        } else {
-            \Log::info('Etkinlik bulunamadı veya hata oluştu');
+            
+            \Log::info('Etkinlik sorgusu sonuçları:', ['sonuç' => $eventsResult]);
+            
+            $events = [];
+            if (!isset($eventsResult['error']) && !empty($eventsResult)) {
+                $events = $eventsResult;
+                \Log::info('Bulunan etkinlikler:', ['events' => $events]);
+            } else {
+                \Log::info('Etkinlik bulunamadı veya hata oluştu', [
+                    'error' => isset($eventsResult['error']) ? $eventsResult['error'] : 'Sonuç boş'
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Etkinlik sorgusunda istisna oluştu: ' . $e->getMessage());
+            $events = [];
         }
         
         return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
@@ -426,48 +406,28 @@ class ArtistController extends Controller
         // Etkinlikleri çekmeyi deneyelim ve sorguyu logla
         \Log::info('Events sorgusu yapılıyor:', ['artist_id' => $artist['artist_id']]);
         
-        // Tüm etkinlikleri çek (sanatçı filtresiz)
-        $allEventsResult = $this->supabaseService->select('events', [
-            'select' => 'event_id,event_title,event_date,event_city,event_type,event_image,event_artist',
-            'order' => 'event_date.asc',
-            'limit' => 5
-        ]);
-        
-        \Log::info('Tüm etkinlikler sorgusu sonucu:', [
-            'count' => isset($allEventsResult['error']) ? 0 : count($allEventsResult),
-            'error' => isset($allEventsResult['error']) ? $allEventsResult['error'] : null,
-            'first_items' => isset($allEventsResult['error']) ? [] : array_slice($allEventsResult, 0, 2)
-        ]);
-        
-        // Sanatçı ID'sine göre etkinlikleri çek - Burada artist_id değerini doğrudan sorguluyoruz
-        $eventsResult = $this->supabaseService->select('events', [
-            'event_artist' => 'eq.' . $artist['artist_id'],
-            'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
-            'order' => 'event_date.asc'
-        ]);
-        
-        // Eğer sorguda hata varsa veya sonuç bulunamadıysa, artist_id'yi string olarak çevirip tekrar deneyelim
-        if (isset($eventsResult['error']) || empty($eventsResult)) {
-            \Log::info('İlk sorgu başarısız oldu, artist_id ile string olarak tekrar deneniyor');
-            
+        // Sütun adlarıyla ilgili hatalar olduğu için basitleştirilmiş bir sorgu kullanalım
+        // order seçeneğini kaldırdık ve tüm sütunları getiriyoruz
+        try {
             $eventsResult = $this->supabaseService->select('events', [
-                'event_artist' => 'eq.' . (string)$artist['artist_id'],
-                'select' => 'event_id,event_title,event_date,event_city,event_type,event_image',
-                'order' => 'event_date.asc'
+                'event_artist' => 'eq.' . $artist['artist_id'],
+                'select' => '*'
             ]);
-        }
-        
-        \Log::info('Sanatçıya göre filtrelenmiş etkinlik sorgusu sonucu:', [
-            'count' => isset($eventsResult['error']) ? 0 : count($eventsResult),
-            'error' => isset($eventsResult['error']) ? $eventsResult['error'] : null
-        ]);
-        
-        $events = [];
-        if (!isset($eventsResult['error']) && !empty($eventsResult)) {
-            $events = $eventsResult;
-            \Log::info('Bulunan etkinlikler:', ['events' => $events]);
-        } else {
-            \Log::info('Etkinlik bulunamadı veya hata oluştu');
+            
+            \Log::info('Etkinlik sorgusu sonuçları:', ['sonuç' => $eventsResult]);
+            
+            $events = [];
+            if (!isset($eventsResult['error']) && !empty($eventsResult)) {
+                $events = $eventsResult;
+                \Log::info('Bulunan etkinlikler:', ['events' => $events]);
+            } else {
+                \Log::info('Etkinlik bulunamadı veya hata oluştu', [
+                    'error' => isset($eventsResult['error']) ? $eventsResult['error'] : 'Sonuç boş'
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Etkinlik sorgusunda istisna oluştu: ' . $e->getMessage());
+            $events = [];
         }
         
         return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
