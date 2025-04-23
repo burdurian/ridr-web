@@ -3,195 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $artist['artist_name'] }} - Ridr</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            background-color: #f8f9fa;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f8f9fc;
+            color: #2c3e50;
         }
-        .sidebar {
-            height: 100vh;
-            position: fixed;
-            top: 0;
-            left: 0;
-            padding: 0;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            z-index: 100;
+
+        /* Navbar Stili */
+        .navbar {
             background-color: #fff;
-        }
-        .sidebar-sticky {
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+            padding: 15px 0;
             position: sticky;
             top: 0;
-            height: 100vh;
-            padding-top: 1.5rem;
-            overflow-x: hidden;
-            overflow-y: auto;
+            z-index: 1000;
         }
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 2rem;
-            padding: 0 1rem;
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 24px;
+            color: #6c63ff;
         }
-        .nav-link {
-            color: #333;
-            border-radius: 0;
-            padding: 0.75rem 1rem;
-        }
-        .nav-link:hover {
-            background-color: #f8f9fa;
-        }
-        .nav-link.active {
-            background-color: #6c63ff;
-            color: white;
-        }
-        .logo-img {
-            width: 40px;
-            height: 40px;
-            background-color: #6c63ff;
-            color: white;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
+
+        .navbar-brand img {
+            height: 35px;
             margin-right: 10px;
         }
-        .main-content {
-            margin-left: 250px;
-            padding: 2rem;
+
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            color: #2c3e50;
+            padding: 10px 15px;
+            transition: all 0.3s;
         }
-        .profile-header {
-            background-color: white;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.05);
-            padding: 2rem;
-            margin-bottom: 2rem;
+
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: #6c63ff;
         }
+
+        .navbar-nav .nav-link i {
+            margin-right: 5px;
+        }
+
+        /* Ana Kart Stili */
+        .main-card {
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-bottom: 25px;
+            position: relative;
+            border: none;
+            overflow: hidden;
+        }
+
+        .main-card::before {
+            content: "";
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            background: rgba(108, 99, 255, 0.05);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .main-card h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            position: relative;
+        }
+
+        /* Profil Kartı */
+        .profile-card {
+            display: flex;
+            align-items: center;
+            background-color: #fff;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
         .profile-image {
-            width: 150px;
-            height: 150px;
+            width: 120px;
+            height: 120px;
+            border-radius: 15px;
             object-fit: cover;
-            border-radius: 50%;
-            margin-right: 2rem;
+            margin-right: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
+
         .default-profile {
-            width: 150px;
-            height: 150px;
+            width: 120px;
+            height: 120px;
             background-color: #e9ecef;
-            border-radius: 50%;
+            border-radius: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-right: 2rem;
+            margin-right: 25px;
             color: #6c757d;
             font-size: 3rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
         }
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.05);
-            margin-bottom: 1.5rem;
+
+        .profile-info h3 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
         }
-        .card-header {
-            background-color: transparent;
-            border-bottom: 1px solid #eee;
-            padding: 1.25rem 1.5rem;
-            font-weight: bold;
+
+        .badge {
+            padding: 8px 15px;
+            border-radius: 30px;
+            font-weight: 500;
+            font-size: 12px;
+            letter-spacing: 0.5px;
         }
-        .card-body {
-            padding: 1.5rem;
+
+        .badge-genre {
+            background-color: #f1f2f6;
+            color: #2c3e50;
         }
-        .btn-edit {
+
+        .badge-plan {
+            background-color: #6c63ff;
+            color: #fff;
+        }
+
+        /* Bilgi Kartları */
+        .info-card {
+            background-color: #fff;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 25px;
+            border-top: 4px solid #6c63ff;
+        }
+
+        .info-card-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #f1f2f6;
+        }
+
+        .info-card-header h4 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .info-card-body {
+            padding: 20px 25px;
+        }
+
+        .info-item {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #7f8c8d;
+            width: 40%;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #2c3e50;
+            width: 60%;
+        }
+
+        /* Butonlar */
+        .btn-primary {
             background-color: #6c63ff;
             border-color: #6c63ff;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: all 0.3s;
         }
-        .btn-edit:hover {
+
+        .btn-primary:hover {
             background-color: #5a52e0;
             border-color: #5a52e0;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(108, 99, 255, 0.2);
         }
-        .btn-back {
-            background-color: transparent;
-            border-color: #ddd;
-            color: #333;
-        }
-        .btn-back:hover {
-            background-color: #f8f9fa;
-            border-color: #ddd;
-            color: #333;
-        }
-        .badge {
-            padding: 0.5rem 0.75rem;
+
+        .btn-outline-secondary {
+            color: #6c757d;
+            border-color: #ced4da;
             font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 10px;
+            transition: all 0.3s;
         }
-        .plan-badge {
-            background-color: #6c63ff;
-            color: white;
+
+        .btn-outline-secondary:hover {
+            background-color: #f8f9fa;
+            color: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        /* Plan Özellikleri */
+        .plan-features {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .plan-features li {
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f2f6;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .plan-features li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-status {
+            font-weight: 600;
+        }
+
+        .feature-status.available {
+            color: #2ecc71;
+        }
+
+        .feature-status.unavailable {
+            color: #e74c3c;
+        }
+
+        /* Uyarılar */
+        .alert {
+            border-radius: 10px;
+            border: none;
+            padding: 15px 20px;
+        }
+
+        .alert-success {
+            background-color: #d4f5e2;
+            color: #1d8348;
+        }
+
+        .alert-danger {
+            background-color: #fdedee;
+            color: #e74c3c;
         }
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="col-md-3 col-lg-2 d-md-block sidebar">
-        <div class="sidebar-sticky">
-            <div class="logo d-flex align-items-center">
-                <div class="logo-img">R</div>
-                <span>RIDR</span>
-            </div>
-            
-            <div class="user-info mb-4 px-3">
-                <small class="text-muted d-block">Menajer</small>
-                <span class="fw-bold">{{ session('manager')['manager_name'] }} {{ session('manager')['manager_surname'] }}</span>
-            </div>
-            
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('dashboard') }}">
-                        <i class="fas fa-home me-2"></i>
-                        Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="{{ route('artists.index') }}">
-                        <i class="fas fa-music me-2"></i>
-                        Sanatçılarım
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('subscriptions.index') }}">
-                        <i class="fas fa-credit-card me-2"></i>
-                        Abonelikler
-                    </a>
-                </li>
-            </ul>
-            
-            <div class="mt-auto px-3 mb-3 position-absolute bottom-0 start-0 end-0">
-                <form action="{{ route('logout') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn btn-sm btn-outline-secondary w-100">
-                        <i class="fas fa-sign-out-alt me-2"></i>
-                        Çıkış Yap
-                    </button>
-                </form>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light">
+        <div class="container">
+            <a class="navbar-brand" href="{{ route('dashboard') }}">
+                <img src="/ridrlogo.svg" alt="RIDR Logo">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('dashboard') }}">
+                            <i class="fas fa-home"></i> Ana Sayfa
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ route('artists.index') }}">
+                            <i class="fas fa-music"></i> Sanatçılarım
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('subscriptions.index') }}">
+                            <i class="fas fa-credit-card"></i> Abonelikler
+                        </a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
+    </nav>
 
-    <!-- Main content -->
-    <div class="main-content">
+    <!-- Ana İçerik -->
+    <div class="container my-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1>Sanatçı Detayları</h1>
+            <h2>Sanatçı Detayları</h2>
             <div>
-                <a href="{{ route('artists.index') }}" class="btn btn-back me-2">
-                    <i class="fas fa-arrow-left me-1"></i> Geri
+                <a href="{{ route('artists.index') }}" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-arrow-left me-1"></i> Geri Dön
                 </a>
-                <a href="{{ route('artists.edit', $artist['artist_id']) }}" class="btn btn-edit">
+                <a href="{{ route('artists.edit', $artist['artist_id']) }}" class="btn btn-primary">
                     <i class="fas fa-edit me-1"></i> Düzenle
                 </a>
             </div>
         </div>
-        
+
         @if(session('success'))
             <div class="alert alert-success mb-4">
                 {{ session('success') }}
@@ -203,8 +338,9 @@
                 {{ session('error') }}
             </div>
         @endif
-        
-        <div class="profile-header d-flex align-items-center">
+
+        <!-- Profil Kartı -->
+        <div class="profile-card">
             @if(!empty($artist['artist_image']))
                 <img src="{{ $artist['artist_image'] }}" alt="{{ $artist['artist_name'] }}" class="profile-image">
             @else
@@ -213,73 +349,91 @@
                 </div>
             @endif
             
-            <div>
-                <h2 class="mb-1">{{ $artist['artist_name'] }}</h2>
-                <div class="mb-2">
-                    <span class="badge bg-secondary me-2">{{ $artist['genre'] }}</span>
+            <div class="profile-info">
+                <h3>{{ $artist['artist_name'] }}</h3>
+                <div class="mb-3">
+                    <span class="badge badge-genre me-2">
+                        <i class="fas fa-music me-1"></i> {{ $artist['genre'] }}
+                    </span>
                     @if($plan)
-                        <span class="badge plan-badge">{{ $plan['plan_name'] }}</span>
+                        <span class="badge badge-plan">
+                            <i class="fas fa-crown me-1"></i> {{ $plan['plan_name'] }}
+                        </span>
                     @endif
                 </div>
-                <p class="text-muted mb-0">Slug: {{ $artist['artist_slug'] }}</p>
+                <p class="text-muted mb-0">{{ $artist['artist_slug'] }}</p>
             </div>
         </div>
-        
+
         <div class="row">
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">Sanatçı Bilgileri</div>
-                    <div class="card-body">
-                        <div class="mb-3">
-                            <strong>ID:</strong> {{ $artist['artist_id'] }}
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <h4><i class="fas fa-info-circle me-2"></i> Sanatçı Bilgileri</h4>
+                    </div>
+                    <div class="info-card-body">
+                        <div class="info-item">
+                            <div class="info-label">ID:</div>
+                            <div class="info-value">{{ $artist['artist_id'] }}</div>
                         </div>
-                        <div class="mb-3">
-                            <strong>İsim:</strong> {{ $artist['artist_name'] }}
+                        <div class="info-item">
+                            <div class="info-label">İsim:</div>
+                            <div class="info-value">{{ $artist['artist_name'] }}</div>
                         </div>
-                        <div class="mb-3">
-                            <strong>Müzik Türü:</strong> {{ $artist['genre'] }}
+                        <div class="info-item">
+                            <div class="info-label">Müzik Türü:</div>
+                            <div class="info-value">{{ $artist['genre'] }}</div>
                         </div>
-                        <div class="mb-3">
-                            <strong>Slug:</strong> {{ $artist['artist_slug'] }}
+                        <div class="info-item">
+                            <div class="info-label">Slug:</div>
+                            <div class="info-value">{{ $artist['artist_slug'] }}</div>
                         </div>
-                        <div>
-                            <strong>Oluşturulma Tarihi:</strong> {{ \Carbon\Carbon::parse($artist['created_at'])->format('d.m.Y H:i') }}
+                        <div class="info-item">
+                            <div class="info-label">Oluşturulma Tarihi:</div>
+                            <div class="info-value">{{ \Carbon\Carbon::parse($artist['created_at'])->format('d.m.Y H:i') }}</div>
                         </div>
                     </div>
                 </div>
             </div>
             
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">Abonelik Bilgileri</div>
-                    <div class="card-body">
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <h4><i class="fas fa-crown me-2"></i> Abonelik Bilgileri</h4>
+                    </div>
+                    <div class="info-card-body">
                         @if($plan)
-                            <div class="mb-3">
-                                <strong>Plan:</strong> {{ $plan['plan_name'] }}
+                            <div class="info-item">
+                                <div class="info-label">Plan:</div>
+                                <div class="info-value">{{ $plan['plan_name'] }}</div>
                             </div>
-                            <div class="mb-3">
-                                <strong>Fiyat:</strong> {{ $plan['monthly_price'] }} {{ $plan['price_currency'] }} / ay
+                            <div class="info-item">
+                                <div class="info-label">Fiyat:</div>
+                                <div class="info-value">{{ $plan['monthly_price'] }} {{ $plan['price_currency'] }} / ay</div>
                             </div>
-                            <div class="mb-3">
-                                <strong>Maksimum Müzisyen Sayısı:</strong> {{ $plan['max_members'] }}
+                            <div class="info-item">
+                                <div class="info-label">Maksimum Müzisyen:</div>
+                                <div class="info-value">{{ $plan['max_members'] }}</div>
                             </div>
                             @if(!empty($plan['plan_features']) && is_array($plan['plan_features']))
-                                <div>
-                                    <strong>Özellikler:</strong>
-                                    <ul class="mt-2">
-                                        @foreach($plan['plan_features'] as $key => $value)
-                                            <li>
-                                                {{ ucfirst(str_replace('_', ' ', $key)) }}:
-                                                <span class="{{ $value == 'yes' ? 'text-success' : 'text-danger' }}">
-                                                    {{ $value == 'yes' ? 'Var' : 'Yok' }}
-                                                </span>
-                                            </li>
-                                        @endforeach
-                                    </ul>
+                                <div class="info-item">
+                                    <div class="info-label">Özellikler:</div>
+                                    <div class="info-value">
+                                        <ul class="plan-features">
+                                            @foreach($plan['plan_features'] as $key => $value)
+                                                <li>
+                                                    {{ ucfirst(str_replace('_', ' ', $key)) }}
+                                                    <span class="feature-status {{ $value == 'yes' ? 'available' : 'unavailable' }}">
+                                                        {{ $value == 'yes' ? 'Var' : 'Yok' }}
+                                                    </span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
                                 </div>
                             @endif
                         @else
-                            <p>Abonelik bilgisi bulunamadı.</p>
+                            <p class="text-muted">Abonelik bilgisi bulunamadı.</p>
                         @endif
                     </div>
                 </div>
