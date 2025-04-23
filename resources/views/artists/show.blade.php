@@ -552,7 +552,7 @@
         </div>
 
         <div class="row">
-            <div class="col-md-7">
+            <div class="col-md-5">
                 <!-- Ekip Yönetimi Kartı -->
                 <div class="info-card team-management-card">
                     <div class="info-card-header">
@@ -660,7 +660,7 @@
                 </div>
             </div>
             
-            <div class="col-md-5">
+            <div class="col-md-7">
                 <div class="info-card">
                     <div class="info-card-header">
                         <h4><i class="fas fa-crown me-2"></i> Abonelik Bilgileri</h4>
