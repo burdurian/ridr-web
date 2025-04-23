@@ -439,8 +439,332 @@
                 </div>
             </div>
         </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="info-card">
+                    <div class="info-card-header d-flex justify-content-between align-items-center">
+                        <h4><i class="fas fa-users me-2"></i> Sanatçı Ekibi</h4>
+                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamMemberModal">
+                            <i class="fas fa-user-plus me-1"></i> Yeni Üye Ekle
+                        </button>
+                    </div>
+                    <div class="info-card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="teamMembersTable">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Üye</th>
+                                        <th scope="col">Rol</th>
+                                        <th scope="col">İşlemler</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if(empty($teamMembers))
+                                        <tr>
+                                            <td colspan="3" class="text-center py-4">
+                                                <p class="text-muted mb-0">Henüz ekip üyesi eklenmemiş.</p>
+                                            </td>
+                                        </tr>
+                                    @else
+                                        @foreach($teamMembers as $member)
+                                            <tr data-user-id="{{ $member['user_id'] }}">
+                                                <td>
+                                                    <div class="d-flex align-items-center">
+                                                        @if(!empty($member['user_img']))
+                                                            <img src="{{ $member['user_img'] }}" alt="{{ $member['user_name'] }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                                                        @else
+                                                            <div class="rounded-circle me-3 bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                                <i class="fas fa-user text-secondary"></i>
+                                                            </div>
+                                                        @endif
+                                                        <div>
+                                                            <h6 class="mb-0">{{ $member['user_name'] }} {{ $member['user_surname'] }}</h6>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="badge {{ $member['is_admin'] ? 'bg-primary' : 'bg-secondary' }}">
+                                                        {{ $member['is_admin'] ? 'Yönetici' : 'Üye' }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <button type="button" class="btn btn-sm btn-outline-secondary change-role-btn" data-user-id="{{ $member['user_id'] }}" data-current-role="{{ $member['is_admin'] ? 'admin' : 'member' }}">
+                                                            <i class="fas fa-exchange-alt me-1"></i> Rol Değiştir
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger remove-member-btn" data-user-id="{{ $member['user_id'] }}">
+                                                            <i class="fas fa-user-minus me-1"></i> Çıkar
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    @endif
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Yeni Ekip Üyesi Ekleme Modal -->
+    <div class="modal fade" id="addTeamMemberModal" tabindex="-1" aria-labelledby="addTeamMemberModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addTeamMemberModalLabel">Yeni Ekip Üyesi Ekle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="search-container mb-4">
+                        <label for="phone" class="form-label">Telefon Numarası</label>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="phone" placeholder="5xxxxxxxxx, 05xxxxxxxxx veya +905xxxxxxxxx">
+                            <button class="btn btn-primary" type="button" id="searchUserBtn">
+                                <i class="fas fa-search"></i> Ara
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Kullanıcının sisteme kayıtlı telefon numarasını girin.</small>
+                    </div>
+                    
+                    <div id="userSearchResult" class="d-none">
+                        <div class="alert alert-danger d-none" id="searchError"></div>
+                        
+                        <div class="card mb-3 d-none" id="userCard">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="user-image-container me-3">
+                                        <img src="" alt="" class="rounded-circle d-none" id="userImage" style="width: 60px; height: 60px; object-fit: cover;">
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center d-none" id="userDefaultImage" style="width: 60px; height: 60px;">
+                                            <i class="fas fa-user text-secondary fa-2x"></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h5 class="card-title mb-1" id="userName"></h5>
+                                        <p class="card-text mb-0 text-muted" id="userPhone"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 d-none" id="roleSelection">
+                            <label class="form-label">Kullanıcı Rolü</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="userRole" id="roleMember" value="member" checked>
+                                <label class="form-check-label" for="roleMember">
+                                    <i class="fas fa-user me-1"></i> Üye
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="userRole" id="roleAdmin" value="admin">
+                                <label class="form-check-label" for="roleAdmin">
+                                    <i class="fas fa-user-shield me-1"></i> Yönetici
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" id="addUserBtn" disabled>Ekle</button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Telefon numarasıyla kullanıcı arama
+            const searchUserBtn = document.getElementById('searchUserBtn');
+            const phoneInput = document.getElementById('phone');
+            const searchResult = document.getElementById('userSearchResult');
+            const searchError = document.getElementById('searchError');
+            const userCard = document.getElementById('userCard');
+            const userImage = document.getElementById('userImage');
+            const userDefaultImage = document.getElementById('userDefaultImage');
+            const userName = document.getElementById('userName');
+            const userPhone = document.getElementById('userPhone');
+            const roleSelection = document.getElementById('roleSelection');
+            const addUserBtn = document.getElementById('addUserBtn');
+            let currentUserId = null;
+            
+            searchUserBtn.addEventListener('click', function() {
+                const phone = phoneInput.value.trim();
+                
+                if (!phone) {
+                    showSearchError('Lütfen bir telefon numarası girin.');
+                    return;
+                }
+                
+                // Kullanıcı arama isteği gönder
+                fetch('/api/artists/find-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ phone: phone })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Kullanıcı bulundu
+                        showUserData(data.user);
+                    } else {
+                        // Kullanıcı bulunamadı
+                        showSearchError(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showSearchError('Bir hata oluştu. Lütfen tekrar deneyin.');
+                });
+            });
+            
+            // Kullanıcı bulunduğunda verileri göster
+            function showUserData(user) {
+                searchResult.classList.remove('d-none');
+                searchError.classList.add('d-none');
+                userCard.classList.remove('d-none');
+                roleSelection.classList.remove('d-none');
+                addUserBtn.disabled = false;
+                
+                // Kullanıcı bilgilerini doldur
+                if (user.user_img) {
+                    userImage.src = user.user_img;
+                    userImage.alt = user.user_name;
+                    userImage.classList.remove('d-none');
+                    userDefaultImage.classList.add('d-none');
+                } else {
+                    userImage.classList.add('d-none');
+                    userDefaultImage.classList.remove('d-none');
+                }
+                
+                userName.textContent = `${user.user_name} ${user.user_surname}`;
+                userPhone.textContent = user.phone;
+                currentUserId = user.user_id;
+            }
+            
+            // Arama hatası göster
+            function showSearchError(message) {
+                searchResult.classList.remove('d-none');
+                searchError.classList.remove('d-none');
+                searchError.textContent = message;
+                userCard.classList.add('d-none');
+                roleSelection.classList.add('d-none');
+                addUserBtn.disabled = true;
+                currentUserId = null;
+            }
+            
+            // Kullanıcı ekleme butonu
+            addUserBtn.addEventListener('click', function() {
+                if (!currentUserId) return;
+                
+                const role = document.querySelector('input[name="userRole"]:checked').value;
+                
+                // Ekip üyesi ekleme isteği gönder
+                fetch('/api/artists/{{ $artist["artist_id"] }}/team/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({
+                        user_id: currentUserId,
+                        role: role
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Başarılı ise sayfayı yenile
+                        window.location.reload();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                });
+            });
+            
+            // Üye çıkarma butonları
+            document.querySelectorAll('.remove-member-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    
+                    if (confirm('Bu üyeyi sanatçı ekibinden çıkarmak istediğinize emin misiniz?')) {
+                        // Üye çıkarma isteği gönder
+                        fetch('/api/artists/{{ $artist["artist_id"] }}/team/remove', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                user_id: userId
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Başarılı ise sayfayı yenile
+                                window.location.reload();
+                            } else {
+                                alert(data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                        });
+                    }
+                });
+            });
+            
+            // Rol değiştirme butonları
+            document.querySelectorAll('.change-role-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    const currentRole = this.getAttribute('data-current-role');
+                    const newRole = currentRole === 'admin' ? 'member' : 'admin';
+                    const roleName = newRole === 'admin' ? 'Yönetici' : 'Üye';
+                    
+                    if (confirm(`Bu üyenin rolünü "${roleName}" olarak değiştirmek istediğinize emin misiniz?`)) {
+                        // Rol değiştirme isteği gönder
+                        fetch('/api/artists/{{ $artist["artist_id"] }}/team/change-role', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({
+                                user_id: userId,
+                                role: newRole
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Başarılı ise sayfayı yenile
+                                window.location.reload();
+                            } else {
+                                alert(data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Bir hata oluştu. Lütfen tekrar deneyin.');
+                        });
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html> 

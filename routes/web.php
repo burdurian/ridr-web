@@ -38,6 +38,12 @@ Route::middleware([ManagerAuth::class])->group(function () {
     Route::resource('artists', ArtistController::class)->except(['index']);
     Route::get('/artists', [ArtistController::class, 'index'])->name('artists.index');
     
+    // Ekip yönetimi API'leri
+    Route::post('/api/artists/find-user', [ArtistController::class, 'findUserByPhone']);
+    Route::post('/api/artists/{id}/team/add', [ArtistController::class, 'addTeamMember']);
+    Route::post('/api/artists/{id}/team/remove', [ArtistController::class, 'removeTeamMember']);
+    Route::post('/api/artists/{id}/team/change-role', [ArtistController::class, 'changeTeamMemberRole']);
+    
     // Sanatçı oluşturma aşamaları için ekstra rotalar
     Route::get('/artists/create/step1', [ArtistController::class, 'createStep1'])->name('artists.create.step1');
     Route::post('/artists/create/process-step1', [ArtistController::class, 'processStep1'])->name('artists.process.step1');

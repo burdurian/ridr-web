@@ -350,7 +350,17 @@ class ArtistController extends Controller
             $plan = $planResult[0];
         }
         
-        return view('artists.show', compact('artist', 'plan'));
+        // Ekip üyelerini çek
+        $teamResult = $this->supabaseService->rpc('get_users_for_artist', [
+            'artist_id_param' => $artist['artist_id']
+        ]);
+        
+        $teamMembers = [];
+        if (!isset($teamResult['error'])) {
+            $teamMembers = $teamResult;
+        }
+        
+        return view('artists.show', compact('artist', 'plan', 'teamMembers'));
     }
 
     /**
@@ -498,5 +508,354 @@ class ArtistController extends Controller
         
         return redirect()->route('artists.index')
             ->with('success', 'Sanatçı başarıyla silindi.');
+    }
+
+    /**
+     * Telefon numarası ile kullanıcı arama
+     */
+    public function findUserByPhone(Request $request)
+    {
+        $phone = $request->input('phone');
+        
+        // Telefon numarasını standart formata çevir
+        $formattedPhone = $this->formatPhoneNumber($phone);
+        
+        if (empty($formattedPhone)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Geçersiz telefon numarası formatı'
+            ]);
+        }
+        
+        // Kullanıcıyı ara
+        $result = $this->supabaseService->select('users', [
+            'phone' => 'eq.' . $formattedPhone,
+            'select' => 'user_id,user_name,user_surname,user_img,phone'
+        ]);
+        
+        if (isset($result['error']) || empty($result)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bu telefon numarasına sahip kullanıcı bulunamadı'
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'user' => $result[0]
+        ]);
+    }
+    
+    /**
+     * Sanatçı ekibine üye ekle
+     */
+    public function addTeamMember(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|string',
+            'role' => 'required|in:admin,member'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Geçersiz veri'
+            ]);
+        }
+        
+        $manager = Session::get('manager');
+        $userId = $request->input('user_id');
+        $role = $request->input('role');
+        
+        // Sanatçının var olduğunu ve yöneticiye ait olduğunu kontrol et
+        $artistResult = $this->supabaseService->select('artists', [
+            'artist_id' => 'eq.' . $id,
+            'related_manager' => 'eq.' . $manager['manager_id'],
+            'select' => 'artist_id,artist_members,artist_admins'
+        ]);
+        
+        if (isset($artistResult['error']) || empty($artistResult)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sanatçı bulunamadı veya bu sanatçıya erişim izniniz yok'
+            ]);
+        }
+        
+        $artist = $artistResult[0];
+        
+        // Mevcut ekip üyelerini diziye çevir
+        $members = [];
+        if (!empty($artist['artist_members'])) {
+            $members = array_map('trim', explode(',', $artist['artist_members']));
+            // Çift tırnakları temizle
+            $members = array_map(function($member) {
+                return trim($member, '"');
+            }, $members);
+        }
+        
+        $admins = [];
+        if (!empty($artist['artist_admins'])) {
+            $admins = array_map('trim', explode(',', $artist['artist_admins']));
+            // Çift tırnakları temizle
+            $admins = array_map(function($admin) {
+                return trim($admin, '"');
+            }, $admins);
+        }
+        
+        // Kullanıcı ID'sini ilgili diziye ekle
+        if ($role === 'admin') {
+            // Eğer kullanıcı zaten admin değilse ekle
+            if (!in_array($userId, $admins)) {
+                $admins[] = $userId;
+            }
+            
+            // Normal üyelerden kaldır (bir kişi hem üye hem admin olamaz)
+            if (in_array($userId, $members)) {
+                $members = array_diff($members, [$userId]);
+            }
+        } else {
+            // Eğer kullanıcı zaten normal üye değilse ekle
+            if (!in_array($userId, $members)) {
+                $members[] = $userId;
+            }
+            
+            // Admin'lerden kaldır (bir kişi hem üye hem admin olamaz)
+            if (in_array($userId, $admins)) {
+                $admins = array_diff($admins, [$userId]);
+            }
+        }
+        
+        // Güncellenmiş üye listelerini virgülle birleştir
+        $updatedMembers = implode(',', $members);
+        $updatedAdmins = implode(',', $admins);
+        
+        // Sanatçı bilgilerini güncelle
+        $updateResult = $this->supabaseService->update('artists', [
+            'artist_members' => $updatedMembers,
+            'artist_admins' => $updatedAdmins
+        ], [
+            'artist_id' => 'eq.' . $id
+        ]);
+        
+        if (isset($updateResult['error'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ekip üyesi eklenirken bir hata oluştu: ' . $updateResult['error']
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Ekip üyesi başarıyla eklendi'
+        ]);
+    }
+    
+    /**
+     * Sanatçı ekibinden üye çıkar
+     */
+    public function removeTeamMember(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|string'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Geçersiz veri'
+            ]);
+        }
+        
+        $manager = Session::get('manager');
+        $userId = $request->input('user_id');
+        
+        // Sanatçının var olduğunu ve yöneticiye ait olduğunu kontrol et
+        $artistResult = $this->supabaseService->select('artists', [
+            'artist_id' => 'eq.' . $id,
+            'related_manager' => 'eq.' . $manager['manager_id'],
+            'select' => 'artist_id,artist_members,artist_admins'
+        ]);
+        
+        if (isset($artistResult['error']) || empty($artistResult)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sanatçı bulunamadı veya bu sanatçıya erişim izniniz yok'
+            ]);
+        }
+        
+        $artist = $artistResult[0];
+        
+        // Mevcut ekip üyelerini diziye çevir
+        $members = [];
+        if (!empty($artist['artist_members'])) {
+            $members = array_map('trim', explode(',', $artist['artist_members']));
+            // Çift tırnakları temizle
+            $members = array_map(function($member) {
+                return trim($member, '"');
+            }, $members);
+        }
+        
+        $admins = [];
+        if (!empty($artist['artist_admins'])) {
+            $admins = array_map('trim', explode(',', $artist['artist_admins']));
+            // Çift tırnakları temizle
+            $admins = array_map(function($admin) {
+                return trim($admin, '"');
+            }, $admins);
+        }
+        
+        // Kullanıcıyı her iki diziden de kaldır
+        $members = array_diff($members, [$userId]);
+        $admins = array_diff($admins, [$userId]);
+        
+        // Güncellenmiş üye listelerini virgülle birleştir
+        $updatedMembers = implode(',', $members);
+        $updatedAdmins = implode(',', $admins);
+        
+        // Sanatçı bilgilerini güncelle
+        $updateResult = $this->supabaseService->update('artists', [
+            'artist_members' => $updatedMembers,
+            'artist_admins' => $updatedAdmins
+        ], [
+            'artist_id' => 'eq.' . $id
+        ]);
+        
+        if (isset($updateResult['error'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ekip üyesi çıkarılırken bir hata oluştu: ' . $updateResult['error']
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Ekip üyesi başarıyla çıkarıldı'
+        ]);
+    }
+    
+    /**
+     * Ekip üyesinin rolünü değiştir
+     */
+    public function changeTeamMemberRole(Request $request, $id)
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|string',
+            'role' => 'required|in:admin,member'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Geçersiz veri'
+            ]);
+        }
+        
+        $manager = Session::get('manager');
+        $userId = $request->input('user_id');
+        $role = $request->input('role');
+        
+        // Sanatçının var olduğunu ve yöneticiye ait olduğunu kontrol et
+        $artistResult = $this->supabaseService->select('artists', [
+            'artist_id' => 'eq.' . $id,
+            'related_manager' => 'eq.' . $manager['manager_id'],
+            'select' => 'artist_id,artist_members,artist_admins'
+        ]);
+        
+        if (isset($artistResult['error']) || empty($artistResult)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sanatçı bulunamadı veya bu sanatçıya erişim izniniz yok'
+            ]);
+        }
+        
+        $artist = $artistResult[0];
+        
+        // Mevcut ekip üyelerini diziye çevir
+        $members = [];
+        if (!empty($artist['artist_members'])) {
+            $members = array_map('trim', explode(',', $artist['artist_members']));
+            // Çift tırnakları temizle
+            $members = array_map(function($member) {
+                return trim($member, '"');
+            }, $members);
+        }
+        
+        $admins = [];
+        if (!empty($artist['artist_admins'])) {
+            $admins = array_map('trim', explode(',', $artist['artist_admins']));
+            // Çift tırnakları temizle
+            $admins = array_map(function($admin) {
+                return trim($admin, '"');
+            }, $admins);
+        }
+        
+        // Kullanıcının rolünü değiştir
+        if ($role === 'admin') {
+            // Kullanıcıyı admin dizisine ekle
+            if (!in_array($userId, $admins)) {
+                $admins[] = $userId;
+            }
+            
+            // Kullanıcıyı normal üye dizisinden çıkar
+            $members = array_diff($members, [$userId]);
+        } else {
+            // Kullanıcıyı normal üye dizisine ekle
+            if (!in_array($userId, $members)) {
+                $members[] = $userId;
+            }
+            
+            // Kullanıcıyı admin dizisinden çıkar
+            $admins = array_diff($admins, [$userId]);
+        }
+        
+        // Güncellenmiş üye listelerini virgülle birleştir
+        $updatedMembers = implode(',', $members);
+        $updatedAdmins = implode(',', $admins);
+        
+        // Sanatçı bilgilerini güncelle
+        $updateResult = $this->supabaseService->update('artists', [
+            'artist_members' => $updatedMembers,
+            'artist_admins' => $updatedAdmins
+        ], [
+            'artist_id' => 'eq.' . $id
+        ]);
+        
+        if (isset($updateResult['error'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ekip üyesi rolü değiştirilirken bir hata oluştu: ' . $updateResult['error']
+            ]);
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Ekip üyesi rolü başarıyla değiştirildi'
+        ]);
+    }
+    
+    /**
+     * Telefon numarasını +90XXXXXXXXXX formatına dönüştür
+     */
+    private function formatPhoneNumber($phone)
+    {
+        // Telefon numarasından gereksiz karakterleri temizle
+        $phone = preg_replace('/[^0-9]/', '', $phone);
+        
+        // Türkiye için +90 formatına çevir
+        if (strlen($phone) === 10 && substr($phone, 0, 1) === '5') {
+            // 5XXXXXXXXX formatında ise başına +90 ekle
+            return '+90' . $phone;
+        } elseif (strlen($phone) === 11 && substr($phone, 0, 1) === '0' && substr($phone, 1, 1) === '5') {
+            // 05XXXXXXXXX formatında ise başındaki 0'ı kaldırıp +90 ekle
+            return '+90' . substr($phone, 1);
+        } elseif (strlen($phone) === 12 && substr($phone, 0, 2) === '90' && substr($phone, 2, 1) === '5') {
+            // 905XXXXXXXXX formatında ise başına + ekle
+            return '+' . $phone;
+        } elseif (strlen($phone) === 13 && substr($phone, 0, 3) === '+90' && substr($phone, 3, 1) === '5') {
+            // +905XXXXXXXXX formatında ise doğrudan döndür
+            return $phone;
+        }
+        
+        return null;
     }
 } 
