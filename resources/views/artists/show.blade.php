@@ -394,6 +394,106 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- Ekip Yönetimi Kartı -->
+                <div class="info-card team-management-card mt-4">
+                    <div class="info-card-header">
+                        <h4><i class="fas fa-users me-2"></i> Sanatçı Ekibi</h4>
+                    </div>
+                    <div class="info-card-body p-0">
+                        <div class="team-add-section">
+                            <div class="input-group border-0">
+                                <input type="text" id="phoneSearch" class="form-control border-0 rounded-0 py-3" placeholder="Telefon numarası ile ara...">
+                                <button type="button" id="searchUserBtn" class="btn btn-light border-0 px-4">
+                                    <i class="fas fa-search text-primary"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="searchResults" class="search-results-container d-none">
+                            <div class="d-flex align-items-center px-4 py-3 border-top border-bottom" id="userResultContainer">
+                                <div id="userImageContainer" class="me-3">
+                                    <img id="userImage" src="" alt="" class="rounded-circle d-none" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <div id="userDefaultImage" class="rounded-circle bg-light d-flex align-items-center justify-content-center d-none" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-user text-secondary"></i>
+                                    </div>
+                                </div>
+                                <div class="user-info flex-grow-1">
+                                    <h6 id="userName" class="mb-0 user-name-text"></h6>
+                                    <small id="userPhone" class="text-muted user-phone-text"></small>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <select id="userRoleSelect" class="form-select form-select-sm me-2 role-select" style="width: 100px;">
+                                        <option value="member">Üye</option>
+                                        <option value="admin">Yönetici</option>
+                                    </select>
+                                    <button id="addUserBtn" class="btn btn-sm btn-primary add-user-btn">
+                                        <i class="fas fa-plus me-1"></i> Ekle
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="searchError" class="alert alert-danger mx-4 my-3 d-none"></div>
+                        </div>
+                        
+                        <div class="team-members-list" style="max-height: 300px;">
+                            @if(empty($teamMembers))
+                                <div class="empty-team-state text-center py-3">
+                                    <div class="empty-team-icon mb-2" style="width: 60px; height: 60px;">
+                                        <i class="fas fa-users text-muted" style="font-size: 24px; opacity: 0.3;"></i>
+                                    </div>
+                                    <h6 class="text-muted">Henüz Ekip Üyesi Yok</h6>
+                                    <p class="text-muted small mb-0">Yukarıdan ekleyebilirsiniz</p>
+                                </div>
+                            @else
+                                @foreach($teamMembers as $member)
+                                    <div class="team-member-item" data-user-id="{{ $member['user_id'] }}">
+                                        <div class="d-flex align-items-center px-3 py-2 border-bottom position-relative team-member-row">
+                                            <div class="member-avatar me-2">
+                                                @if(!empty($member['user_img']))
+                                                    <img src="{{ $member['user_img'] }}" alt="{{ $member['user_name'] }}" class="rounded-circle" style="width: 35px; height: 35px; object-fit: cover;">
+                                                @else
+                                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 35px; height: 35px;">
+                                                        <i class="fas fa-user text-secondary"></i>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                            <div class="member-info flex-grow-1">
+                                                <h6 class="mb-0 member-name small">{{ $member['user_name'] }} {{ $member['user_surname'] }}</h6>
+                                                <div class="d-flex align-items-center member-meta">
+                                                    <span class="badge {{ $member['is_admin'] ? 'bg-primary' : 'bg-secondary' }} me-2" style="font-size: 10px; padding: 3px 8px;">
+                                                        {{ $member['is_admin'] ? 'Yönetici' : 'Üye' }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="member-actions">
+                                                <div class="dropdown">
+                                                    <button class="btn btn-sm btn-light border-0 p-1" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class="fas fa-ellipsis-v"></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        <li>
+                                                            <a class="dropdown-item change-role-btn" href="#" data-user-id="{{ $member['user_id'] }}" data-current-role="{{ $member['is_admin'] ? 'admin' : 'member' }}">
+                                                                <i class="fas fa-exchange-alt me-2 text-primary"></i>
+                                                                {{ $member['is_admin'] ? 'Üye Yap' : 'Yönetici Yap' }}
+                                                            </a>
+                                                        </li>
+                                                        <li><hr class="dropdown-divider"></li>
+                                                        <li>
+                                                            <a class="dropdown-item text-danger remove-member-btn" href="#" data-user-id="{{ $member['user_id'] }}">
+                                                                <i class="fas fa-user-minus me-2"></i>
+                                                                Çıkar
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            @endif
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="col-md-6">
@@ -435,109 +535,6 @@
                         @else
                             <p class="text-muted">Abonelik bilgisi bulunamadı.</p>
                         @endif
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row mt-4">
-            <div class="col-12">
-                <div class="info-card team-management-card">
-                    <div class="info-card-header">
-                        <h4><i class="fas fa-users me-2"></i> Sanatçı Ekibi</h4>
-                    </div>
-                    <div class="info-card-body p-0">
-                        <div class="team-add-section">
-                            <div class="input-group border-0">
-                                <input type="text" id="phoneSearch" class="form-control border-0 rounded-0 py-3" placeholder="Telefon numarası girerek ekip üyesi ekle (5xxxxxxxxx)">
-                                <button type="button" id="searchUserBtn" class="btn btn-light border-0 px-4">
-                                    <i class="fas fa-search text-primary"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div id="searchResults" class="search-results-container d-none">
-                            <div class="d-flex align-items-center px-4 py-3 border-top border-bottom" id="userResultContainer">
-                                <div id="userImageContainer" class="me-3">
-                                    <img id="userImage" src="" alt="" class="rounded-circle d-none" style="width: 50px; height: 50px; object-fit: cover;">
-                                    <div id="userDefaultImage" class="rounded-circle bg-light d-flex align-items-center justify-content-center d-none" style="width: 50px; height: 50px;">
-                                        <i class="fas fa-user text-secondary fa-lg"></i>
-                                    </div>
-                                </div>
-                                <div class="user-info flex-grow-1">
-                                    <h6 id="userName" class="mb-0 user-name-text"></h6>
-                                    <small id="userPhone" class="text-muted user-phone-text"></small>
-                                </div>
-                                <div class="d-flex align-items-center">
-                                    <select id="userRoleSelect" class="form-select form-select-sm me-2 role-select" style="width: 120px;">
-                                        <option value="member">Üye</option>
-                                        <option value="admin">Yönetici</option>
-                                    </select>
-                                    <button id="addUserBtn" class="btn btn-sm btn-primary add-user-btn">
-                                        <i class="fas fa-plus me-1"></i> Ekle
-                                    </button>
-                                </div>
-                            </div>
-                            <div id="searchError" class="alert alert-danger mx-4 my-3 d-none"></div>
-                        </div>
-                        
-                        <div class="team-members-list">
-                            @if(empty($teamMembers))
-                                <div class="empty-team-state text-center py-5">
-                                    <div class="empty-team-icon mb-3">
-                                        <i class="fas fa-users text-muted" style="font-size: 48px; opacity: 0.3;"></i>
-                                    </div>
-                                    <h5 class="text-muted">Bu Sanatçının Henüz Ekip Üyesi Yok</h5>
-                                    <p class="text-muted mb-0">Yukarıdan telefon numarası girerek ekip üyesi ekleyebilirsiniz</p>
-                                </div>
-                            @else
-                                @foreach($teamMembers as $member)
-                                    <div class="team-member-item" data-user-id="{{ $member['user_id'] }}">
-                                        <div class="d-flex align-items-center px-4 py-3 border-bottom position-relative team-member-row">
-                                            <div class="member-avatar me-3">
-                                                @if(!empty($member['user_img']))
-                                                    <img src="{{ $member['user_img'] }}" alt="{{ $member['user_name'] }}" class="rounded-circle" style="width: 50px; height: 50px; object-fit: cover;">
-                                                @else
-                                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                                        <i class="fas fa-user text-secondary fa-lg"></i>
-                                                    </div>
-                                                @endif
-                                            </div>
-                                            <div class="member-info flex-grow-1">
-                                                <h6 class="mb-0 member-name">{{ $member['user_name'] }} {{ $member['user_surname'] }}</h6>
-                                                <div class="d-flex align-items-center member-meta">
-                                                    <span class="badge {{ $member['is_admin'] ? 'bg-primary' : 'bg-secondary' }} me-2">
-                                                        {{ $member['is_admin'] ? 'Yönetici' : 'Üye' }}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div class="member-actions">
-                                                <div class="dropdown">
-                                                    <button class="btn btn-sm btn-light dropdown-toggle border-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                        İşlemler
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                        <li>
-                                                            <a class="dropdown-item change-role-btn" href="#" data-user-id="{{ $member['user_id'] }}" data-current-role="{{ $member['is_admin'] ? 'admin' : 'member' }}">
-                                                                <i class="fas fa-exchange-alt me-2 text-primary"></i>
-                                                                {{ $member['is_admin'] ? 'Üye Yap' : 'Yönetici Yap' }}
-                                                            </a>
-                                                        </li>
-                                                        <li><hr class="dropdown-divider"></li>
-                                                        <li>
-                                                            <a class="dropdown-item text-danger remove-member-btn" href="#" data-user-id="{{ $member['user_id'] }}">
-                                                                <i class="fas fa-user-minus me-2"></i>
-                                                                Ekipten Çıkar
-                                                            </a>
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            @endif
-                        </div>
                     </div>
                 </div>
             </div>
