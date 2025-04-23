@@ -900,6 +900,8 @@
                                         <div class="event-image">
                                             @if(!empty($eventImage))
                                                 <img src="{{ $eventImage }}" alt="{{ $eventTitle }}">
+                                            @elseif(!empty($artist['artist_image']))
+                                                <img src="{{ $artist['artist_image'] }}" alt="{{ $artist['artist_name'] }}" style="object-fit: cover;">
                                             @else
                                                 <div class="event-image-placeholder">
                                                     <i class="fas fa-music"></i>
