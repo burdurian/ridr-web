@@ -459,8 +459,8 @@
         @endif
 
         <div class="row">
-            <!-- Sol taraf - Profil kartı -->
-            <div class="col-md-4 order-md-1 order-1">
+            <!-- Profil kartı -->
+            <div class="col-md-4 col-12 order-1">
                 <div class="profile-card">
                     <div class="profile-header">
                         <div class="profile-image">
@@ -493,9 +493,35 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Duyurular -->
-                <div class="dashboard-card blue order-md-2 order-3 mt-4 mt-md-3">
+            <!-- Sanatçılar listesi -->
+            <div class="col-md-8 col-12 order-2 mb-4">
+                <!-- Sanatçılarım -->
+                <div class="dashboard-card h-100 purple">
+                    <div class="card-header">
+                        <h5>Sanatçılarım</h5>
+                        <a href="{{ route('artists.create.step1') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i> Yeni Sanatçı Ekle
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div class="artist-list" id="artists-list">
+                            <!-- Sanatçı listesi sunucu tarafından doldurulacak -->
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Yükleniyor...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Sanatçılar yükleniyor...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Duyurular -->
+            <div class="col-md-4 col-12 order-3 mb-4">
+                <div class="dashboard-card blue">
                     <div class="card-header">
                         <h5>RIDR Duyuruları</h5>
                         <div class="card-icon blue">
@@ -515,30 +541,6 @@
                             <div class="announcement-date">10 Nisan 2024</div>
                             <div class="announcement-text">
                                 Seçkin ve Sınırsız abonelik planlarında %15 indirim başladı.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sağ taraf -->
-            <div class="col-md-8 order-md-2 order-2 mb-4">
-                <!-- Sanatçılarım -->
-                <div class="dashboard-card h-100 purple">
-                    <div class="card-header">
-                        <h5>Sanatçılarım</h5>
-                        <a href="{{ route('artists.create.step1') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus me-1"></i> Yeni Sanatçı Ekle
-                        </a>
-                    </div>
-                    <div class="card-body">
-                        <div class="artist-list" id="artists-list">
-                            <!-- Sanatçı listesi sunucu tarafından doldurulacak -->
-                            <div class="text-center py-4">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Yükleniyor...</span>
-                                </div>
-                                <p class="mt-2 text-muted">Sanatçılar yükleniyor...</p>
                             </div>
                         </div>
                     </div>
