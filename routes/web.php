@@ -19,7 +19,7 @@ use App\Http\Middleware\ManagerAuth;
 */
 
 // Auth rotaları
-Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
+Route::get('/', [AuthController::class, 'checkMobileToken'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
