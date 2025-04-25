@@ -33,6 +33,11 @@
             color: #6c63ff;
         }
 
+        .navbar-brand img {
+            height: 35px;
+            margin-right: 10px;
+        }
+
         .navbar-nav .nav-link {
             font-weight: 500;
             color: #2c3e50;
@@ -536,7 +541,9 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">RIDR</a>
+            <a class="navbar-brand" href="{{ route('dashboard') }}">
+                <img src="/ridrlogo.svg" alt="RIDR Logo">
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -609,51 +616,74 @@
                     <h3 class="form-section-title">Sanatçı Bilgileri</h3>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="artist_name" class="form-label">Sanatçı Adı *</label>
-                            <input type="text" class="form-control @error('artist_name') is-invalid @enderror" id="artist_name" name="artist_name" value="{{ old('artist_name') }}" required>
-                            @error('artist_name')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <div class="mb-4">
+                                <label for="artist_name" class="form-label">Sanatçı Adı *</label>
+                                <input type="text" class="form-control @error('artist_name') is-invalid @enderror" id="artist_name" name="artist_name" value="{{ old('artist_name') }}" required>
+                                @error('artist_name')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="genre" class="form-label">Müzik Türleri *</label>
+                                <div class="genre-multiselect">
+                                    <div class="genre-selector" id="genre-selector" tabindex="0">
+                                        <span class="genre-placeholder">Müzik türlerini seçin...</span>
+                                    </div>
+                                    <div class="genre-dropdown" id="genre-dropdown">
+                                        <div class="genre-option" data-value="Pop">Pop</div>
+                                        <div class="genre-option" data-value="Rock">Rock</div>
+                                        <div class="genre-option" data-value="HipHop">Hip Hop</div>
+                                        <div class="genre-option" data-value="R&B">R&B</div>
+                                        <div class="genre-option" data-value="Jazz">Jazz</div>
+                                        <div class="genre-option" data-value="Electronic">Electronic</div>
+                                        <div class="genre-option" data-value="Classical">Classical</div>
+                                        <div class="genre-option" data-value="Country">Country</div>
+                                        <div class="genre-option" data-value="Reggae">Reggae</div>
+                                        <div class="genre-option" data-value="Folk">Folk</div>
+                                        <div class="genre-option" data-value="Metal">Metal</div>
+                                        <div class="genre-option" data-value="Blues">Blues</div>
+                                        <div class="genre-option" data-value="Latin">Latin</div>
+                                        <div class="genre-option" data-value="Alternative">Alternative</div>
+                                        <div class="genre-option" data-value="Indie">Indie</div>
+                                    </div>
+                                    <input type="hidden" name="genre" id="genre-input" value="{{ old('genre') }}" required>
+                                </div>
+                                @error('genre')
+                                    <div class="text-danger mt-2" style="font-size: 0.875em;">{{ $message }}</div>
+                                @enderror
+                            </div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
-                            <label for="genre" class="form-label">Müzik Türleri *</label>
-                            <div class="genre-multiselect">
-                                <div class="genre-selector" id="genre-selector" tabindex="0">
-                                    <span class="genre-placeholder">Müzik türlerini seçin...</span>
+                            <label class="form-label">Sanatçı Görseli</label>
+                            <div class="artist-image-uploader mb-3">
+                                <div class="dropzone-container" id="dropzone-container">
+                                    <div class="image-preview-container" id="image-preview-container" style="display: none;">
+                                        <img id="image-preview" src="" alt="Önizleme" class="img-fluid rounded">
+                                        <button type="button" id="remove-image" class="btn btn-danger btn-sm position-absolute top-0 end-0 m-2">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                    <div class="dropzone-prompt" id="dropzone-prompt">
+                                        <div class="text-center p-5 border-2 border-dashed rounded-3 d-flex flex-column align-items-center justify-content-center" style="background-color: #f8f9fa; border-color: #dee2e6; height: 260px;">
+                                            <i class="fas fa-cloud-upload-alt text-muted mb-3" style="font-size: 40px;"></i>
+                                            <p class="mb-2">Görsel yüklemek için tıklayın veya dosyayı sürükleyin</p>
+                                            <p class="small text-muted mb-3">JPG, PNG veya GIF - Maks 5MB</p>
+                                            <button type="button" id="select-image-btn" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-images me-1"></i> Görsel Seç
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <input type="file" id="artist-image-input" name="artist_image_file" class="d-none" accept="image/jpeg,image/png,image/gif">
+                                    <input type="hidden" id="artist_image" name="artist_image" value="{{ old('artist_image') }}">
                                 </div>
-                                <div class="genre-dropdown" id="genre-dropdown">
-                                    <div class="genre-option" data-value="Pop">Pop</div>
-                                    <div class="genre-option" data-value="Rock">Rock</div>
-                                    <div class="genre-option" data-value="HipHop">Hip Hop</div>
-                                    <div class="genre-option" data-value="R&B">R&B</div>
-                                    <div class="genre-option" data-value="Jazz">Jazz</div>
-                                    <div class="genre-option" data-value="Electronic">Electronic</div>
-                                    <div class="genre-option" data-value="Classical">Classical</div>
-                                    <div class="genre-option" data-value="Country">Country</div>
-                                    <div class="genre-option" data-value="Reggae">Reggae</div>
-                                    <div class="genre-option" data-value="Folk">Folk</div>
-                                    <div class="genre-option" data-value="Metal">Metal</div>
-                                    <div class="genre-option" data-value="Blues">Blues</div>
-                                    <div class="genre-option" data-value="Latin">Latin</div>
-                                    <div class="genre-option" data-value="Alternative">Alternative</div>
-                                    <div class="genre-option" data-value="Indie">Indie</div>
-                                </div>
-                                <input type="hidden" name="genre" id="genre-input" value="{{ old('genre') }}" required>
+                                @error('artist_image')
+                                    <div class="text-danger mt-2" style="font-size: 0.875em;">{{ $message }}</div>
+                                @enderror
+                                <div class="form-text">Sanatçının profesyonel bir görseli daha iyi sonuçlar verecektir.</div>
                             </div>
-                            @error('genre')
-                                <div class="text-danger mt-2" style="font-size: 0.875em;">{{ $message }}</div>
-                            @enderror
                         </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="artist_image" class="form-label">Sanatçı Görseli (URL)</label>
-                        <input type="url" class="form-control @error('artist_image') is-invalid @enderror" id="artist_image" name="artist_image" value="{{ old('artist_image') }}" placeholder="https://example.com/image.jpg">
-                        @error('artist_image')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                        <div class="form-text">Sanatçı için bir görsel URL'si girin. Bu alan isteğe bağlıdır.</div>
                     </div>
                 </div>
                 
@@ -844,7 +874,33 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Modal for Image Cropping -->
+    <div class="modal fade" id="cropImageModal" tabindex="-1" aria-labelledby="cropImageModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cropImageModalLabel">Görseli Düzenle</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="img-container">
+                        <img id="cropImage" src="" alt="Kırpılacak Görsel" style="max-width: 100%;">
+                    </div>
+                    <div class="cropper-guides mt-3">
+                        <p class="text-muted small">En iyi sonuç için görseli kare olarak kırpın (1:1 oranında).</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="button" class="btn btn-primary" id="cropImageBtn">Kırp ve Kullan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cropper.js ve gerekli JavaScript -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Plan seçimi
@@ -1002,6 +1058,135 @@
                     }
                 });
             }
+
+            // Image Upload Logic
+            const dropzoneContainer = document.getElementById('dropzone-container');
+            const dropzonePrompt = document.getElementById('dropzone-prompt');
+            const imagePreviewContainer = document.getElementById('image-preview-container');
+            const imagePreview = document.getElementById('image-preview');
+            const artistImageInput = document.getElementById('artist-image-input');
+            const hiddenArtistImage = document.getElementById('artist_image');
+            const selectImageBtn = document.getElementById('select-image-btn');
+            const removeImageBtn = document.getElementById('remove-image');
+            
+            // Cropper.js variables
+            let cropModal = new bootstrap.Modal(document.getElementById('cropImageModal'));
+            let cropImage = document.getElementById('cropImage');
+            let cropper;
+            
+            // Listen for file selection
+            selectImageBtn.addEventListener('click', function() {
+                artistImageInput.click();
+            });
+            
+            // Handle file drops
+            dropzoneContainer.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                dropzonePrompt.classList.add('dragover');
+            });
+            
+            dropzoneContainer.addEventListener('dragleave', function() {
+                dropzonePrompt.classList.remove('dragover');
+            });
+            
+            dropzoneContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                dropzonePrompt.classList.remove('dragover');
+                
+                if (e.dataTransfer.files.length) {
+                    handleFileSelection(e.dataTransfer.files[0]);
+                }
+            });
+            
+            // Handle file input change
+            artistImageInput.addEventListener('change', function(e) {
+                if (this.files.length) {
+                    handleFileSelection(this.files[0]);
+                }
+            });
+            
+            // Remove selected image
+            removeImageBtn.addEventListener('click', function() {
+                hiddenArtistImage.value = '';
+                imagePreview.src = '';
+                imagePreviewContainer.style.display = 'none';
+                dropzonePrompt.style.display = 'block';
+                artistImageInput.value = '';
+            });
+            
+            // Handle file selection
+            function handleFileSelection(file) {
+                // Check file size (limit to 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('Dosya boyutu çok büyük. Lütfen 5MB veya daha küçük bir dosya seçin.');
+                    return;
+                }
+                
+                // Check file type
+                if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
+                    alert('Lütfen geçerli bir görsel formatı seçin (JPG, PNG veya GIF).');
+                    return;
+                }
+                
+                // Read the file and open crop modal
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Initialize cropper
+                    cropImage.src = e.target.result;
+                    cropModal.show();
+                    
+                    // Wait for modal to show before initializing cropper
+                    setTimeout(() => {
+                        // Destroy existing cropper if it exists
+                        if (cropper) {
+                            cropper.destroy();
+                        }
+                        
+                        // Initialize new cropper
+                        cropper = new Cropper(cropImage, {
+                            aspectRatio: 1, // Square
+                            viewMode: 1,
+                            guides: true,
+                            autoCropArea: 0.8,
+                            responsive: true
+                        });
+                    }, 500);
+                };
+                reader.readAsDataURL(file);
+            }
+            
+            // Handle image cropping
+            document.getElementById('cropImageBtn').addEventListener('click', function() {
+                if (!cropper) return;
+                
+                // Get cropped canvas
+                const canvas = cropper.getCroppedCanvas({
+                    width: 720,
+                    height: 720,
+                    minWidth: 300,
+                    minHeight: 300,
+                    maxWidth: 1200,
+                    maxHeight: 1200,
+                    imageSmoothingEnabled: true,
+                    imageSmoothingQuality: 'high'
+                });
+                
+                if (!canvas) return;
+                
+                // Convert canvas to base64 for preview
+                const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8);
+                imagePreview.src = croppedImageUrl;
+                imagePreviewContainer.style.display = 'block';
+                dropzonePrompt.style.display = 'none';
+                
+                // Set hidden input value (will be processed by server)
+                hiddenArtistImage.value = croppedImageUrl;
+                
+                // Close modal and destroy cropper
+                cropModal.hide();
+                cropper.destroy();
+                cropper = null;
+            });
         });
     </script>
 </body>

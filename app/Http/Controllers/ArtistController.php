@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\SupabaseService;
+use App\Services\FileManagerService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -11,10 +12,12 @@ use Illuminate\Support\Str;
 class ArtistController extends Controller
 {
     protected $supabaseService;
+    protected $fileManagerService;
 
-    public function __construct(SupabaseService $supabaseService)
+    public function __construct(SupabaseService $supabaseService, FileManagerService $fileManagerService)
     {
         $this->supabaseService = $supabaseService;
+        $this->fileManagerService = $fileManagerService;
     }
 
     /**
@@ -61,7 +64,7 @@ class ArtistController extends Controller
             'artist_name' => 'required|string|max:255',
             'genre' => 'required|string|max:100',
             'subscription_plan' => 'required|string',
-            'artist_image' => 'nullable|url|max:255',
+            'artist_image' => 'nullable',
         ]);
 
         if ($validator->fails()) {
@@ -122,10 +125,62 @@ class ArtistController extends Controller
         $artistData = [
             'artist_name' => $request->input('artist_name'),
             'genre' => $request->input('genre'),
-            'artist_image' => $request->input('artist_image', ''),
+            'artist_image' => '',
             'artist_slug' => $slug,
             'subscription_plan' => $request->input('subscription_plan'),
         ];
+        
+        // Görsel işleme - Base64 formatında gelen görseli işle
+        $imageData = $request->input('artist_image');
+        if (!empty($imageData) && preg_match('/^data:image\/(\w+);base64,/', $imageData)) {
+            try {
+                // Base64 veriyi dosyaya dönüştür
+                $imageType = explode('/', mime_content_type($imageData))[1];
+                $imageData = substr($imageData, strpos($imageData, ',') + 1);
+                $imageData = str_replace(' ', '+', $imageData);
+                $imageData = base64_decode($imageData);
+                
+                if ($imageData === false) {
+                    return redirect()->back()
+                        ->with('error', 'Görsel verisi işlenemedi.')
+                        ->withInput();
+                }
+                
+                // Geçici dosya oluştur
+                $tempFile = tempnam(sys_get_temp_dir(), 'artist_image');
+                file_put_contents($tempFile, $imageData);
+                
+                // UploadedFile nesnesine dönüştür
+                $uploadedFile = new \Illuminate\Http\UploadedFile(
+                    $tempFile,
+                    'artist_image.' . $imageType,
+                    mime_content_type($tempFile),
+                    null,
+                    true
+                );
+                
+                // Görüntüyü işle (yeniden boyutlandır ve sıkıştır)
+                $processedImage = $this->fileManagerService->processImage($uploadedFile, 720, 0.8);
+                
+                // Görüntüyü sunucuya yükle
+                $uploadResult = $this->fileManagerService->uploadFile($processedImage, 'artist_images');
+                
+                // Upload başarılı ise URL'i kaydet
+                if (isset($uploadResult['success']) && $uploadResult['success']) {
+                    $artistData['artist_image'] = $uploadResult['url'];
+                }
+                
+                // Geçici dosyayı temizle
+                if (file_exists($tempFile)) {
+                    unlink($tempFile);
+                }
+                
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->with('error', 'Görsel yüklenirken bir hata oluştu: ' . $e->getMessage())
+                    ->withInput();
+            }
+        }
         
         Session::put('artist_creation_data', $artistData);
         
@@ -202,49 +257,118 @@ class ArtistController extends Controller
         } else {
             $managerUpdateData['company_tax_number'] = $request->input('billing_tax_number');
             $managerUpdateData['company_tax_office'] = $request->input('billing_tax_office');
-            $managerUpdateData['company_legal_name'] = $request->input('billing_company_name');
+            $managerUpdateData['company_legal_name'] = $request->input('billing_legal_name');
             // Eğer daha önce bireysel bilgi varsa ve şimdi kurumsal seçildiyse, bireysel bilgileri NULL yap
             $managerUpdateData['manager_tax_kimlikno'] = null;
         }
         
         // Menajer bilgilerini güncelle
-        $this->supabaseService->update('managers', $managerUpdateData, [
-            'manager_id' => 'eq.' . $manager['manager_id']
-        ]);
+        if (!empty($managerUpdateData)) {
+            $this->supabaseService->update('managers', $managerUpdateData, [
+                'manager_id' => 'eq.' . $manager['manager_id']
+            ]);
+            
+            // Session'daki menajer bilgilerini güncelle
+            $manager = array_merge($manager, $managerUpdateData);
+            Session::put('manager', $manager);
+        }
         
-        // Sanatçı verisini hazırla
-        $artistData['related_manager'] = $manager['manager_id'];
+        // Sanatçı verilerini hazırla
+        $artistInsertData = [
+            'artist_name' => $artistData['artist_name'],
+            'artist_slug' => $artistData['artist_slug'],
+            'genre' => $artistData['genre'],
+            'artist_image' => $artistData['artist_image'],
+            'related_manager' => $manager['manager_id'],
+            'subscription_plan' => $artistData['subscription_plan'],
+            'created_at' => date('Y-m-d H:i:s'),
+            'updated_at' => date('Y-m-d H:i:s')
+        ];
         
-        // Veritabanına yeni sanatçıyı ekle
-        $result = $this->supabaseService->insert('artists', $artistData);
+        // Sanatçı oluştur
+        $result = $this->supabaseService->insert('artists', $artistInsertData);
         
         if (isset($result['error'])) {
             return redirect()->route('artists.create.step1')
-                ->with('error', 'Sanatçı oluşturulurken bir hata oluştu: ' . $result['error']);
+                ->with('error', 'Sanatçı oluşturulurken bir hata oluştu: ' . $result['error']['message'])
+                ->withInput();
         }
         
-        // Oluşturulan sanatçı bilgilerini al
-        $createdArtist = $result[0] ?? null;
+        // Yeni oluşturulan sanatçının ID'sini al
+        $newArtistId = $result[0]['artist_id'] ?? null;
         
-        // Abonelik plan bilgilerini çek
-        $planInfo = null;
-        if ($createdArtist && isset($createdArtist['subscription_plan'])) {
-            $planResult = $this->supabaseService->select('subscription_plans', [
-                'plan_id' => 'eq.' . $createdArtist['subscription_plan'],
-                'select' => 'plan_id,plan_name,monthly_price,price_currency'
-            ]);
-            
-            if (!isset($planResult['error']) && !empty($planResult)) {
-                $planInfo = $planResult[0];
+        if (!$newArtistId) {
+            return redirect()->route('artists.create.step1')
+                ->with('error', 'Sanatçı oluşturuldu fakat ID alınamadı.')
+                ->withInput();
+        }
+        
+        // Eğer görsel URL'i base64 verisinden oluşturulduysa ve geçici bir dosya ise
+        // Bu adımda artist_id'yi kullanarak dosya adını güncelleyelim
+        if (!empty($artistData['artist_image']) && preg_match('/time_[0-9]+_/', $artistData['artist_image'])) {
+            try {
+                // Mevcut URL'den dosya adını çıkar
+                $imageUrl = $artistData['artist_image'];
+                $urlParts = parse_url($imageUrl);
+                $pathParts = pathinfo($urlParts['path']);
+                
+                // Dosya adını al (time_timestamp_name.jpg formatında)
+                $oldFilename = $pathParts['basename'];
+                
+                // Yeni dosya adı oluştur (artist_id.jpg formatında)
+                $extension = $pathParts['extension'] ?? 'jpg';
+                $newFilename = 'artist_' . $newArtistId . '.' . $extension;
+                
+                // CDN'de dosya adını değiştir (burada varsayımsal bir API çağrısı yapılıyor)
+                // Not: Bu fonksiyon şu anda mevcut değil, bu nedenle devre dışı bırakıldı
+                // $renameResult = $this->fileManagerService->renameFile('artist_images', $oldFilename, $newFilename);
+                
+                // Dosya adını değiştirme işlemi başarısız olduysa, yeni bir dosya oluştur
+                $tempFile = sys_get_temp_dir() . '/' . uniqid('artist_temp_');
+                $imageContent = file_get_contents($imageUrl);
+                
+                if ($imageContent !== false) {
+                    file_put_contents($tempFile, $imageContent);
+                    
+                    // Dosyayı UploadedFile nesnesine dönüştür
+                    $uploadedFile = new \Illuminate\Http\UploadedFile(
+                        $tempFile,
+                        $newFilename,
+                        mime_content_type($tempFile),
+                        null,
+                        true
+                    );
+                    
+                    // Görüntüyü sunucuya yükle
+                    $uploadResult = $this->fileManagerService->uploadFile($uploadedFile, 'artist_images');
+                    
+                    // Upload başarılı ise URL'i güncelle
+                    if (isset($uploadResult['success']) && $uploadResult['success']) {
+                        // Veritabanında artist_image'ı güncelle
+                        $this->supabaseService->update('artists', [
+                            'artist_image' => $uploadResult['url']
+                        ], [
+                            'artist_id' => 'eq.' . $newArtistId
+                        ]);
+                    }
+                    
+                    // Geçici dosyayı temizle
+                    if (file_exists($tempFile)) {
+                        unlink($tempFile);
+                    }
+                }
+                
+            } catch (\Exception $e) {
+                // Hata durumunda sadece logla, kullanıcıya gösterme
+                \Log::error('Sanatçı görseli yeniden adlandırma hatası: ' . $e->getMessage());
             }
         }
         
-        // Session'daki geçici verileri temizle
+        // Session'dan artist verilerini temizle
         Session::forget('artist_creation_data');
         
         // Başarı sayfasına yönlendir
-        return redirect()->route('artists.payment.success', ['id' => $createdArtist['artist_id']])
-            ->with('plan', $planInfo);
+        return redirect()->route('artists.payment.success', ['id' => $newArtistId]);
     }
 
     /**
