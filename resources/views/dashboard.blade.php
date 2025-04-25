@@ -460,7 +460,7 @@
 
         <div class="row">
             <!-- Sol taraf - Profil kartı -->
-            <div class="col-md-4">
+            <div class="col-md-4 order-md-1 order-1">
                 <div class="profile-card">
                     <div class="profile-header">
                         <div class="profile-image">
@@ -495,7 +495,7 @@
                 </div>
 
                 <!-- Duyurular -->
-                <div class="dashboard-card blue">
+                <div class="dashboard-card blue order-md-2 order-3 mt-4 mt-md-3">
                     <div class="card-header">
                         <h5>RIDR Duyuruları</h5>
                         <div class="card-icon blue">
@@ -522,7 +522,7 @@
             </div>
 
             <!-- Sağ taraf -->
-            <div class="col-md-8">
+            <div class="col-md-8 order-md-2 order-2 mb-4">
                 <!-- Sanatçılarım -->
                 <div class="dashboard-card h-100 purple">
                     <div class="card-header">
