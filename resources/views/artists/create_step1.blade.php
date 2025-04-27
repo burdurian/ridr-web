@@ -901,6 +901,7 @@
     <!-- Cropper.js ve gerekli JavaScript -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Plan seçimi
@@ -1069,17 +1070,28 @@
             const selectImageBtn = document.getElementById('select-image-btn');
             const removeImageBtn = document.getElementById('remove-image');
             
-            // Cropper.js variables
-            let cropModal = new bootstrap.Modal(document.getElementById('cropImageModal'));
+            // Cropper.js değişkenleri
+            const cropModalEl = document.getElementById('cropImageModal');
+            let cropModal = new bootstrap.Modal(cropModalEl);
             let cropImage = document.getElementById('cropImage');
             let cropper;
             
-            // Listen for file selection
-            selectImageBtn.addEventListener('click', function() {
-                artistImageInput.click();
-            });
+            // Görsel seçme butonu için dinleyici - bunu düzeltelim
+            if (selectImageBtn) {
+                selectImageBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (artistImageInput) {
+                        artistImageInput.click();
+                    } else {
+                        console.error("artist-image-input elementini bulamadık!");
+                    }
+                });
+            } else {
+                console.error("select-image-btn elementini bulamadık!");
+            }
             
-            // Handle file drops
+            // File drops
             dropzoneContainer.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 dropzonePrompt.classList.add('dragover');
@@ -1098,94 +1110,112 @@
                 }
             });
             
-            // Handle file input change
-            artistImageInput.addEventListener('change', function(e) {
-                if (this.files.length) {
-                    handleFileSelection(this.files[0]);
-                }
-            });
+            // Dosya seçim değişikliğini dinle
+            if (artistImageInput) {
+                artistImageInput.addEventListener('change', function(e) {
+                    console.log("Dosya seçildi:", this.files);
+                    if (this.files && this.files.length) {
+                        handleFileSelection(this.files[0]);
+                    }
+                });
+            }
             
-            // Remove selected image
-            removeImageBtn.addEventListener('click', function() {
-                hiddenArtistImage.value = '';
-                imagePreview.src = '';
-                imagePreviewContainer.style.display = 'none';
-                dropzonePrompt.style.display = 'block';
-                artistImageInput.value = '';
-            });
+            // Seçilen görseli kaldır
+            if (removeImageBtn) {
+                removeImageBtn.addEventListener('click', function() {
+                    hiddenArtistImage.value = '';
+                    imagePreview.src = '';
+                    imagePreviewContainer.style.display = 'none';
+                    dropzonePrompt.style.display = 'block';
+                    artistImageInput.value = '';
+                });
+            }
             
-            // Handle file selection
+            // Dosya seçimini işle
             function handleFileSelection(file) {
-                // Check file size (limit to 5MB)
+                console.log("Dosya işleniyor:", file);
+                // Dosya boyutu kontrolü (5MB limit)
                 if (file.size > 5 * 1024 * 1024) {
                     alert('Dosya boyutu çok büyük. Lütfen 5MB veya daha küçük bir dosya seçin.');
                     return;
                 }
                 
-                // Check file type
+                // Dosya türü kontrolü
                 if (!['image/jpeg', 'image/png', 'image/gif'].includes(file.type)) {
                     alert('Lütfen geçerli bir görsel formatı seçin (JPG, PNG veya GIF).');
                     return;
                 }
                 
-                // Read the file and open crop modal
+                // Dosyayı oku ve kırpma modülünü aç
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // Initialize cropper
+                    console.log("Dosya okundu, crop modal açılıyor");
+                    // Cropper'ı başlat
                     cropImage.src = e.target.result;
-                    cropModal.show();
                     
-                    // Wait for modal to show before initializing cropper
-                    setTimeout(() => {
-                        // Destroy existing cropper if it exists
-                        if (cropper) {
-                            cropper.destroy();
-                        }
+                    try {
+                        cropModal.show();
                         
-                        // Initialize new cropper
-                        cropper = new Cropper(cropImage, {
-                            aspectRatio: 1, // Square
-                            viewMode: 1,
-                            guides: true,
-                            autoCropArea: 0.8,
-                            responsive: true
-                        });
-                    }, 500);
+                        // Modal açıldıktan sonra cropper'ı başlat
+                        setTimeout(() => {
+                            console.log("Cropper başlatılıyor");
+                            // Mevcut cropper varsa temizle
+                            if (cropper) {
+                                cropper.destroy();
+                            }
+                            
+                            // Yeni cropper başlat
+                            cropper = new Cropper(cropImage, {
+                                aspectRatio: 1, // Kare
+                                viewMode: 1,
+                                guides: true,
+                                autoCropArea: 0.8,
+                                responsive: true
+                            });
+                        }, 500);
+                    } catch (error) {
+                        console.error("Modal açma hatası:", error);
+                    }
                 };
                 reader.readAsDataURL(file);
             }
             
-            // Handle image cropping
+            // Görsel kırpma işlemini yönet
             document.getElementById('cropImageBtn').addEventListener('click', function() {
+                console.log("Kırpma butonu tıklandı, cropper:", cropper);
                 if (!cropper) return;
                 
-                // Get cropped canvas
-                const canvas = cropper.getCroppedCanvas({
-                    width: 720,
-                    height: 720,
-                    minWidth: 300,
-                    minHeight: 300,
-                    maxWidth: 1200,
-                    maxHeight: 1200,
-                    imageSmoothingEnabled: true,
-                    imageSmoothingQuality: 'high'
-                });
-                
-                if (!canvas) return;
-                
-                // Convert canvas to base64 for preview
-                const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8);
-                imagePreview.src = croppedImageUrl;
-                imagePreviewContainer.style.display = 'block';
-                dropzonePrompt.style.display = 'none';
-                
-                // Set hidden input value (will be processed by server)
-                hiddenArtistImage.value = croppedImageUrl;
-                
-                // Close modal and destroy cropper
-                cropModal.hide();
-                cropper.destroy();
-                cropper = null;
+                try {
+                    // Kırpılmış canvas al
+                    const canvas = cropper.getCroppedCanvas({
+                        width: 720,
+                        height: 720,
+                        minWidth: 300,
+                        minHeight: 300,
+                        maxWidth: 1200,
+                        maxHeight: 1200,
+                        imageSmoothingEnabled: true,
+                        imageSmoothingQuality: 'high'
+                    });
+                    
+                    if (!canvas) return;
+                    
+                    // Canvas'ı önizleme için base64'e dönüştür
+                    const croppedImageUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    imagePreview.src = croppedImageUrl;
+                    imagePreviewContainer.style.display = 'block';
+                    dropzonePrompt.style.display = 'none';
+                    
+                    // Gizli input değerini ayarla (sunucu tarafında işlenecek)
+                    hiddenArtistImage.value = croppedImageUrl;
+                    
+                    // Modal'ı kapat ve cropper'ı temizle
+                    cropModal.hide();
+                    cropper.destroy();
+                    cropper = null;
+                } catch (error) {
+                    console.error("Kırpma hatası:", error);
+                }
             });
         });
     </script>
