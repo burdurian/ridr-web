@@ -299,6 +299,7 @@
                 <i class="fas fa-check-circle success-icon"></i>
                 <h3>Tebrikler!</h3>
                 <p>Sanatçınız başarıyla oluşturuldu ve aboneliğiniz aktifleştirildi.</p>
+                <p class="mt-3">Sanatçı resmi eklemek ve sanatçınızla ilgili daha fazla detay düzenlemek için Ridr mobil uygulaması üzerinden devam edebilirsiniz.</p>
             </div>
             
             <div class="row">

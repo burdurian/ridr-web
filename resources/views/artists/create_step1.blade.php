@@ -664,32 +664,7 @@
                 <div class="form-section">
                     <h3 class="form-section-title">Sanatçı Bilgileri</h3>
                     <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <!-- Sanatçı Resmi Seçme -->
-                            <div class="image-upload-container">
-                                <label class="form-label">Sanatçı Resmi</label>
-                                <div class="image-preview-container" id="imagePreviewContainer">
-                                    <div class="image-preview" id="imagePreview">
-                                        <i class="fas fa-user image-placeholder"></i>
-                                        <img src="" alt="Sanatçı Resmi" id="previewImg" style="display: none;">
-                                    </div>
-                                    <div class="image-upload-controls">
-                                        <label for="artistImage" class="btn btn-outline-primary btn-sm mb-2 w-100">
-                                            <i class="fas fa-camera me-1"></i> Resim Seç
-                                        </label>
-                                        <button type="button" id="removeImageBtn" class="btn btn-outline-danger btn-sm w-100" style="display: none;">
-                                            <i class="fas fa-trash me-1"></i> Resmi Kaldır
-                                        </button>
-                                    </div>
-                                </div>
-                                <input type="file" class="d-none" id="artistImage" accept="image/*">
-                                <input type="hidden" name="artist_image" id="artist_image_url" value="{{ old('artist_image') }}">
-                                <div class="invalid-feedback" id="imageError"></div>
-                                <small class="form-text text-muted">Tercihen 720x720 piksel boyutunda kare bir resim seçin.</small>
-                            </div>
-                        </div>
-                        
-                        <div class="col-md-8">
+                        <div class="col-md-12">
                             <div class="row">
                                 <div class="col-md-12 mb-3">
                                     <label for="artist_name" class="form-label">Sanatçı Adı *</label>
@@ -1018,253 +993,65 @@
                         this.classList.add('selected');
                     }
                     
-                    // Input değerini ve gösterimi güncelle
-                    genreInput.value = selectedGenres.join(',');
                     updateGenreDisplay();
+                    genreInput.value = selectedGenres.join(',');
                 });
             });
             
-            // Dışarı tıklandığında dropdown'ı kapat
+            // Herhangi bir yere tıklandığında dropdown'ı kapat
             document.addEventListener('click', function(e) {
-                if (!genreSelector.contains(e.target) && !genreDropdown.contains(e.target)) {
+                if (!genreSelector.contains(e.target)) {
                     genreDropdown.classList.remove('show');
                     genreSelector.classList.remove('active');
                 }
             });
             
-            // Seçili türleri göster
+            // Seçilen türleri gösteren fonksiyon
             function updateGenreDisplay() {
-                // Placeholder'ı temizle
-                while (genreSelector.firstChild) {
-                    genreSelector.removeChild(genreSelector.firstChild);
-                }
-                
-                // Eğer seçili tür yoksa placeholder göster
                 if (selectedGenres.length === 0) {
-                    const placeholder = document.createElement('span');
-                    placeholder.className = 'genre-placeholder';
-                    placeholder.textContent = 'Müzik türlerini seçin...';
-                    genreSelector.appendChild(placeholder);
+                    genrePlaceholder.style.display = 'block';
+                    genrePlaceholder.textContent = 'Müzik türlerini seçin...';
                 } else {
-                    // Seçili türleri chip olarak göster
+                    genrePlaceholder.style.display = 'none';
+                    
+                    // Önceki chip'leri temizle
+                    Array.from(genreSelector.querySelectorAll('.genre-chip')).forEach(chip => {
+                        genreSelector.removeChild(chip);
+                    });
+                    
+                    // Yeni chip'leri ekle
                     selectedGenres.forEach(genre => {
                         const chip = document.createElement('div');
-                        chip.className = 'genre-chip';
-                        chip.innerHTML = genre + '<span class="close">&times;</span>';
+                        chip.classList.add('genre-chip');
+                        chip.innerHTML = `${genre} <span class="close">&times;</span>`;
                         
-                        // Chip'teki çarpıya tıklayınca türü kaldır
+                        // Chip kapatma işlevi
                         chip.querySelector('.close').addEventListener('click', function(e) {
                             e.stopPropagation();
                             selectedGenres = selectedGenres.filter(g => g !== genre);
+                            updateGenreDisplay();
                             genreInput.value = selectedGenres.join(',');
                             
-                            // İlgili option'ın seçimini kaldır
-                            document.querySelector(`.genre-option[data-value="${genre}"]`).classList.remove('selected');
-                            
-                            updateGenreDisplay();
+                            // Dropdown'daki seçimi de kaldır
+                            const option = Array.from(genreOptions).find(o => o.getAttribute('data-value') === genre);
+                            if (option) option.classList.remove('selected');
                         });
                         
-                        genreSelector.appendChild(chip);
+                        genreSelector.insertBefore(chip, genrePlaceholder);
                     });
                 }
                 
-                // Option'ların seçili durumunu güncelle
+                // Genre dropdown'daki seçimleri güncelle
                 genreOptions.forEach(option => {
-                    const value = option.getAttribute('data-value');
-                    if (selectedGenres.includes(value)) {
+                    const genreValue = option.getAttribute('data-value');
+                    if (selectedGenres.includes(genreValue)) {
                         option.classList.add('selected');
                     } else {
                         option.classList.remove('selected');
                     }
                 });
             }
-
-            // Resim yükleme işlemi
-            const artistImage = document.getElementById('artistImage');
-            const previewImg = document.getElementById('previewImg');
-            const imagePreview = document.getElementById('imagePreview');
-            const removeImageBtn = document.getElementById('removeImageBtn');
-            const artistImageUrl = document.getElementById('artist_image_url');
-            const imageError = document.getElementById('imageError');
-            
-            let cropper;
-            
-            artistImage.addEventListener('change', function(e) {
-                if (e.target.files.length > 0) {
-                    const file = e.target.files[0];
-                    
-                    // Dosya boyutu kontrolü (10MB'dan küçük olmalı)
-                    if (file.size > 10 * 1024 * 1024) {
-                        imageError.textContent = 'Dosya boyutu 10MB\'dan küçük olmalıdır.';
-                        imageError.style.display = 'block';
-                        return;
-                    }
-                    
-                    // Dosya tipi kontrolü
-                    if (!file.type.startsWith('image/')) {
-                        imageError.textContent = 'Lütfen geçerli bir resim dosyası seçin.';
-                        imageError.style.display = 'block';
-                        return;
-                    }
-                    
-                    const reader = new FileReader();
-                    
-                    reader.onload = function() {
-                        // Cropper modalını oluştur
-                        createCropperModal(reader.result);
-                    }
-                    
-                    reader.readAsDataURL(file);
-                }
-            });
-            
-            removeImageBtn.addEventListener('click', function() {
-                previewImg.style.display = 'none';
-                previewImg.src = '';
-                artistImageUrl.value = '';
-                document.querySelector('.image-placeholder').style.display = 'block';
-                removeImageBtn.style.display = 'none';
-            });
-            
-            function uploadImage(blob) {
-                const formData = new FormData();
-                formData.append('image', blob, 'artist_image.jpg');
-                formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-                
-                // Yükleme göstergesi
-                const uploadingIndicator = document.createElement('div');
-                uploadingIndicator.classList.add('uploading-indicator');
-                uploadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                imagePreview.appendChild(uploadingIndicator);
-                
-                // API'ye gönder
-                fetch('{{ route('artists.upload-image') }}', {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest', // Tarayıcının AJAX isteği olduğunu belirtmek için
-                        'Accept': 'application/json'           // JSON yanıt beklendiğini belirtmek için
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Sunucu yanıtı başarısız: ' + response.status);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (uploadingIndicator && uploadingIndicator.parentNode) {
-                        uploadingIndicator.parentNode.removeChild(uploadingIndicator);
-                    }
-                    
-                    if (data.success) {
-                        artistImageUrl.value = data.url;
-                    } else {
-                        throw new Error(data.message || 'Resim yüklenemedi');
-                    }
-                })
-                .catch(error => {
-                    console.error('Yükleme hatası:', error);
-                    if (uploadingIndicator && uploadingIndicator.parentNode) {
-                        uploadingIndicator.parentNode.removeChild(uploadingIndicator);
-                    }
-                    imageError.textContent = 'Resim yüklenirken bir hata oluştu. Lütfen tekrar deneyin.';
-                    imageError.style.display = 'block';
-                });
-            }
-            
-            function createCropperModal(imageSrc) {
-                // Modal HTML
-                const modalHTML = `
-                    <div class="modal fade" id="imageCropperModal" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-lg">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Resmi Kırpın</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="img-container">
-                                        <img id="cropperImage" src="${imageSrc}" style="max-width: 100%;">
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                                    <button type="button" class="btn btn-primary" id="cropImageBtn">Kırp ve Kaydet</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                // Modal'ı ekle
-                document.body.insertAdjacentHTML('beforeend', modalHTML);
-                
-                const modalElement = document.getElementById('imageCropperModal');
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-                
-                // Cropper.js'i başlat
-                const cropperImage = document.getElementById('cropperImage');
-                cropper = new Cropper(cropperImage, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    autoCropArea: 1,
-                    responsive: true,
-                    zoomOnWheel: false
-                });
-                
-                // Kırp butonuna tıklandığında
-                document.getElementById('cropImageBtn').addEventListener('click', function() {
-                    // Kırpılmış resmi al
-                    const canvas = cropper.getCroppedCanvas({
-                        width: 720,
-                        height: 720,
-                        minWidth: 256,
-                        minHeight: 256,
-                        maxWidth: 1024,
-                        maxHeight: 1024,
-                        fillColor: '#fff'
-                    });
-                    
-                    // Canvas'ı blob'a dönüştür
-                    canvas.toBlob(function(blob) {
-                        uploadImage(blob);
-                        
-                        // Ön izleme göster
-                        previewImg.src = canvas.toDataURL();
-                        previewImg.style.display = 'block';
-                        document.querySelector('.image-placeholder').style.display = 'none';
-                        removeImageBtn.style.display = 'block';
-                        
-                        // Modalı kapat
-                        modal.hide();
-                        
-                        // Cropper'ı temizle
-                        cropper.destroy();
-                    }, 'image/jpeg', 0.8);
-                });
-                
-                // Modal kapatıldığında
-                modalElement.addEventListener('hidden.bs.modal', function() {
-                    if (cropper) {
-                        cropper.destroy();
-                    }
-                    
-                    // Modalın DOM'dan kaldırılması için timeout kullanıyoruz
-                    // böylece modal tam olarak kapandıktan sonra kaldırılır
-                    setTimeout(() => {
-                        if (modalElement && modalElement.parentNode) {
-                            modalElement.parentNode.removeChild(modalElement);
-                        }
-                    }, 300);
-                });
-            }
         });
     </script>
-
-    <!-- Cropper.js - Resim kırpma için gerekli -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 </body>
 </html> 
