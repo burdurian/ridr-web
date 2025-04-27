@@ -18,8 +18,8 @@ class ManagerAuth
     public function handle(Request $request, Closure $next)
     {
         if (!Session::has('manager')) {
-            // Kullanıcının gitmek istediği URL'i session'a kaydet
-            Session::put('url.intended', url()->current());
+            // Kullanıcının yönlendirilmek istediği URL'i sakla
+            Session::put('url.intended', $request->fullUrl());
             return redirect()->route('login');
         }
         

@@ -58,9 +58,16 @@ class AuthController extends Controller
         // Oturuma menajer bilgilerini kaydet
         Session::put('manager', $result['manager']);
 
-        // Kullanıcının gitmek istediği sayfaya yönlendir
-        $redirectTo = Session::pull('url.intended', route('dashboard'));
-        return redirect()->to($redirectTo);
+        // Kullanıcıyı kayıtlı intended URL'e veya dashboard'a yönlendir
+        $intendedUrl = Session::get('url.intended');
+        
+        if ($intendedUrl) {
+            Session::forget('url.intended');
+            return redirect($intendedUrl);
+        }
+        
+        // Eğer intended URL yoksa dashboard'a yönlendir
+        return redirect()->route('dashboard');
     }
 
     /**
