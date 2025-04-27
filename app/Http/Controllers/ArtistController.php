@@ -132,54 +132,86 @@ class ArtistController extends Controller
         
         // Görsel işleme - Base64 formatında gelen görseli işle
         $imageData = $request->input('artist_image');
-        if (!empty($imageData) && preg_match('/^data:image\/(\w+);base64,/', $imageData)) {
+        if (!empty($imageData) && strpos($imageData, 'data:image/') === 0) {
             try {
-                // Base64 veriyi dosyaya dönüştür
-                $imageType = explode('/', mime_content_type($imageData))[1];
-                $imageData = substr($imageData, strpos($imageData, ',') + 1);
-                $imageData = str_replace(' ', '+', $imageData);
-                $imageData = base64_decode($imageData);
+                \Log::info('Base64 görsel işleniyor');
                 
-                if ($imageData === false) {
-                    return redirect()->back()
-                        ->with('error', 'Görsel verisi işlenemedi.')
-                        ->withInput();
+                // MIME türünü çıkar
+                $mimeType = '';
+                if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $matches)) {
+                    $mimeType = 'image/' . $matches[1];
+                } else {
+                    throw new \Exception('Geçersiz görsel formatı');
                 }
                 
+                // Base64 veriyi çıkar
+                $base64Data = substr($imageData, strpos($imageData, ',') + 1);
+                $base64Data = str_replace(' ', '+', $base64Data);
+                $decodedData = base64_decode($base64Data, true);
+                
+                if ($decodedData === false) {
+                    throw new \Exception('Base64 veri çözülemedi');
+                }
+                
+                // Dosya uzantısını belirle
+                $extension = 'jpg'; // Varsayılan olarak jpg
+                if ($mimeType === 'image/png') $extension = 'png';
+                if ($mimeType === 'image/gif') $extension = 'gif';
+                if ($mimeType === 'image/webp') $extension = 'webp';
+                
                 // Geçici dosya oluştur
-                $tempFile = tempnam(sys_get_temp_dir(), 'artist_image');
-                file_put_contents($tempFile, $imageData);
+                $tempFileName = 'artist_image_' . time() . '.' . $extension;
+                $tempFilePath = sys_get_temp_dir() . '/' . $tempFileName;
+                
+                \Log::info('Geçici dosya oluşturuluyor: ' . $tempFilePath);
+                if (file_put_contents($tempFilePath, $decodedData) === false) {
+                    throw new \Exception('Geçici dosya oluşturulamadı');
+                }
                 
                 // UploadedFile nesnesine dönüştür
                 $uploadedFile = new \Illuminate\Http\UploadedFile(
-                    $tempFile,
-                    'artist_image.' . $imageType,
-                    mime_content_type($tempFile),
+                    $tempFilePath,
+                    $tempFileName,
+                    $mimeType,
                     null,
                     true
                 );
                 
+                \Log::info('Görüntü işleniyor...');
                 // Görüntüyü işle (yeniden boyutlandır ve sıkıştır)
                 $processedImage = $this->fileManagerService->processImage($uploadedFile, 720, 0.8);
                 
+                \Log::info('Görüntü sunucuya yükleniyor...');
                 // Görüntüyü sunucuya yükle
                 $uploadResult = $this->fileManagerService->uploadFile($processedImage, 'artist_images');
+                
+                \Log::info('Yükleme sonucu: ', $uploadResult);
                 
                 // Upload başarılı ise URL'i kaydet
                 if (isset($uploadResult['success']) && $uploadResult['success']) {
                     $artistData['artist_image'] = $uploadResult['url'];
+                    \Log::info('Görüntü URL\'i kaydedildi: ' . $uploadResult['url']);
+                } else {
+                    \Log::error('Görüntü yükleme başarısız: ', $uploadResult);
                 }
                 
                 // Geçici dosyayı temizle
-                if (file_exists($tempFile)) {
-                    unlink($tempFile);
+                if (file_exists($tempFilePath)) {
+                    unlink($tempFilePath);
+                    \Log::info('Geçici dosya temizlendi');
                 }
                 
             } catch (\Exception $e) {
+                \Log::error('Görsel işleme hatası: ' . $e->getMessage());
                 return redirect()->back()
                     ->with('error', 'Görsel yüklenirken bir hata oluştu: ' . $e->getMessage())
                     ->withInput();
             }
+        } else if (!empty($imageData)) {
+            \Log::warning('Geçersiz görsel formatı: Base64 data URI değil.');
+            return redirect()->back()
+                ->with('error', 'Geçersiz görsel formatı. Lütfen farklı bir resim yükleyin.')
+                ->withInput();
         }
         
         Session::put('artist_creation_data', $artistData);

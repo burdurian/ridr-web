@@ -5,7 +5,6 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
-use Intervention\Image\Facades\Image;
 use Exception;
 
 class FileManagerService
@@ -30,6 +29,28 @@ class FileManagerService
     public function uploadFile(UploadedFile $file, string $type, string $uuid = null): array
     {
         try {
+            // Dosyanın geçerli olduğunu kontrol et
+            if (!$file->isValid()) {
+                Log::error('Dosya geçerli değil', [
+                    'error' => $file->getError(),
+                    'errorMessage' => $file->getErrorMessage()
+                ]);
+                return [
+                    'success' => false,
+                    'error' => 'Yüklenen dosya geçerli değil: ' . $file->getErrorMessage()
+                ];
+            }
+            
+            // Dosya türünü ve boyutunu logla
+            Log::info('Dosya yükleme başlatılıyor', [
+                'filename' => $file->getClientOriginalName(),
+                'type' => $type,
+                'mime' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'uuid' => $uuid
+            ]);
+            
+            // Form verilerini hazırla
             $formData = [
                 'type' => $type,
                 'file' => $file
@@ -39,6 +60,8 @@ class FileManagerService
                 $formData['uuid'] = $uuid;
             }
 
+            // API isteği yap
+            Log::info('API isteği gönderiliyor: ' . $this->apiUrl);
             $response = Http::withoutVerifying()
                 ->timeout(30)
                 ->withHeaders([
@@ -46,30 +69,49 @@ class FileManagerService
                 ])
                 ->post($this->apiUrl, $formData);
 
+            // Yanıtı kontrol et
             if ($response->successful()) {
                 $result = $response->json();
+                Log::info('API yanıtı alındı', ['response' => $result]);
+                
                 if (isset($result['url'])) {
+                    Log::info('Dosya başarıyla yüklendi', ['url' => $result['url']]);
                     return [
                         'success' => true,
                         'url' => $result['url']
+                    ];
+                } else {
+                    Log::error('API yanıtında URL yok', ['response' => $result]);
+                    return [
+                        'success' => false,
+                        'error' => 'API yanıtında URL bilgisi bulunamadı.'
                     ];
                 }
             }
 
             // Hata durumunda
+            $statusCode = $response->status();
+            $responseBody = $response->body();
+            $responseJson = $response->json();
+            
             Log::error('Dosya yükleme hatası', [
-                'response' => $response->body(),
-                'status' => $response->status()
+                'url' => $this->apiUrl,
+                'status' => $statusCode,
+                'body' => $responseBody,
+                'json' => $responseJson
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Dosya yüklenirken bir hata oluştu: ' . ($response->json()['error'] ?? 'Bilinmeyen hata')
+                'error' => 'Dosya yüklenirken bir hata oluştu (HTTP ' . $statusCode . '): ' . 
+                    ($responseJson['error'] ?? $responseBody ?? 'Bilinmeyen hata')
             ];
 
         } catch (Exception $e) {
             Log::error('Dosya yükleme istisnası', [
                 'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
 
@@ -93,17 +135,41 @@ class FileManagerService
         try {
             // Geçici dosya oluştur
             $tempPath = sys_get_temp_dir() . '/' . uniqid('img_') . '.jpg';
-
-            // Görüntüyü aç, boyutlandır ve sıkıştır
-            $img = Image::make($imageFile->getRealPath());
             
-            // Orijinal oranları koruyarak yüksekliği ayarla
-            $img->heighten($height, function ($constraint) {
-                $constraint->upsize(); // Küçük görüntüleri büyütme
-            });
-
-            // JPEG formatında kaydet
-            $img->save($tempPath, $quality * 100);
+            // Görüntüyü GD kütüphanesi ile işle
+            $sourceImage = $this->createImageFromFile($imageFile);
+            
+            if (!$sourceImage) {
+                throw new Exception("Görüntü açılamadı.");
+            }
+            
+            // Orijinal boyutları al
+            $srcWidth = imagesx($sourceImage);
+            $srcHeight = imagesy($sourceImage);
+            
+            // Yeni boyutları hesapla
+            $ratio = $srcHeight / $height;
+            $newWidth = $srcWidth / $ratio;
+            $newHeight = $height;
+            
+            // Yeni görüntü oluştur
+            $destImage = imagecreatetruecolor($newWidth, $newHeight);
+            
+            // Görüntüyü yeniden boyutlandır
+            imagecopyresampled(
+                $destImage, 
+                $sourceImage, 
+                0, 0, 0, 0, 
+                $newWidth, $newHeight, 
+                $srcWidth, $srcHeight
+            );
+            
+            // JPEG olarak kaydet
+            imagejpeg($destImage, $tempPath, $quality * 100);
+            
+            // Kaynakları temizle
+            imagedestroy($sourceImage);
+            imagedestroy($destImage);
 
             // Geçici dosyadan yeni bir UploadedFile oluştur
             return new UploadedFile(
@@ -122,6 +188,31 @@ class FileManagerService
             
             // Hata durumunda orijinal dosyayı döndür
             return $imageFile;
+        }
+    }
+    
+    /**
+     * Dosya türüne göre uygun görüntü oluşturma fonksiyonunu çağırır
+     *
+     * @param UploadedFile $file
+     * @return resource|false GD görüntü kaynağı veya false
+     */
+    private function createImageFromFile(UploadedFile $file)
+    {
+        $mime = $file->getMimeType();
+        $path = $file->getRealPath();
+        
+        switch ($mime) {
+            case 'image/jpeg':
+                return imagecreatefromjpeg($path);
+            case 'image/png':
+                return imagecreatefrompng($path);
+            case 'image/gif':
+                return imagecreatefromgif($path);
+            case 'image/webp':
+                return imagecreatefromwebp($path);
+            default:
+                return false;
         }
     }
 
