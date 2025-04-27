@@ -125,94 +125,10 @@ class ArtistController extends Controller
         $artistData = [
             'artist_name' => $request->input('artist_name'),
             'genre' => $request->input('genre'),
-            'artist_image' => '',
+            'artist_image' => $request->input('artist_image', ''),  // Base64 formatında resim verisini sakla
             'artist_slug' => $slug,
             'subscription_plan' => $request->input('subscription_plan'),
         ];
-        
-        // Görsel işleme - Base64 formatında gelen görseli işle
-        $imageData = $request->input('artist_image');
-        if (!empty($imageData) && strpos($imageData, 'data:image/') === 0) {
-            try {
-                \Log::info('Base64 görsel işleniyor');
-                
-                // MIME türünü çıkar
-                $mimeType = '';
-                if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $matches)) {
-                    $mimeType = 'image/' . $matches[1];
-                } else {
-                    throw new \Exception('Geçersiz görsel formatı');
-                }
-                
-                // Base64 veriyi çıkar
-                $base64Data = substr($imageData, strpos($imageData, ',') + 1);
-                $base64Data = str_replace(' ', '+', $base64Data);
-                $decodedData = base64_decode($base64Data, true);
-                
-                if ($decodedData === false) {
-                    throw new \Exception('Base64 veri çözülemedi');
-                }
-                
-                // Dosya uzantısını belirle
-                $extension = 'jpg'; // Varsayılan olarak jpg
-                if ($mimeType === 'image/png') $extension = 'png';
-                if ($mimeType === 'image/gif') $extension = 'gif';
-                if ($mimeType === 'image/webp') $extension = 'webp';
-                
-                // Geçici dosya oluştur
-                $tempFileName = 'artist_image_' . time() . '.' . $extension;
-                $tempFilePath = sys_get_temp_dir() . '/' . $tempFileName;
-                
-                \Log::info('Geçici dosya oluşturuluyor: ' . $tempFilePath);
-                if (file_put_contents($tempFilePath, $decodedData) === false) {
-                    throw new \Exception('Geçici dosya oluşturulamadı');
-                }
-                
-                // UploadedFile nesnesine dönüştür
-                $uploadedFile = new \Illuminate\Http\UploadedFile(
-                    $tempFilePath,
-                    $tempFileName,
-                    $mimeType,
-                    null,
-                    true
-                );
-                
-                \Log::info('Görüntü işleniyor...');
-                // Görüntüyü işle (yeniden boyutlandır ve sıkıştır)
-                $processedImage = $this->fileManagerService->processImage($uploadedFile, 720, 0.8);
-                
-                \Log::info('Görüntü sunucuya yükleniyor...');
-                // Görüntüyü sunucuya yükle
-                $uploadResult = $this->fileManagerService->uploadFile($processedImage, 'artist_images');
-                
-                \Log::info('Yükleme sonucu: ', $uploadResult);
-                
-                // Upload başarılı ise URL'i kaydet
-                if (isset($uploadResult['success']) && $uploadResult['success']) {
-                    $artistData['artist_image'] = $uploadResult['url'];
-                    \Log::info('Görüntü URL\'i kaydedildi: ' . $uploadResult['url']);
-                } else {
-                    \Log::error('Görüntü yükleme başarısız: ', $uploadResult);
-                }
-                
-                // Geçici dosyayı temizle
-                if (file_exists($tempFilePath)) {
-                    unlink($tempFilePath);
-                    \Log::info('Geçici dosya temizlendi');
-                }
-                
-            } catch (\Exception $e) {
-                \Log::error('Görsel işleme hatası: ' . $e->getMessage());
-                return redirect()->back()
-                    ->with('error', 'Görsel yüklenirken bir hata oluştu: ' . $e->getMessage())
-                    ->withInput();
-            }
-        } else if (!empty($imageData)) {
-            \Log::warning('Geçersiz görsel formatı: Base64 data URI değil.');
-            return redirect()->back()
-                ->with('error', 'Geçersiz görsel formatı. Lütfen farklı bir resim yükleyin.')
-                ->withInput();
-        }
         
         Session::put('artist_creation_data', $artistData);
         
@@ -305,19 +221,26 @@ class ArtistController extends Controller
             Session::put('manager', $manager);
         }
         
+        // ÖNEMLİ: Geçici olarak base64 görselini kaydet
+        $base64Image = null;
+        if (!empty($artistData['artist_image']) && strpos($artistData['artist_image'], 'data:image/') === 0) {
+            $base64Image = $artistData['artist_image'];
+            $artistData['artist_image'] = ''; // Şimdilik boş bırak, sanatçı oluşturulduktan sonra yüklenecek
+        }
+        
         // Sanatçı verilerini hazırla
         $artistInsertData = [
             'artist_name' => $artistData['artist_name'],
             'artist_slug' => $artistData['artist_slug'],
             'genre' => $artistData['genre'],
-            'artist_image' => $artistData['artist_image'],
+            'artist_image' => $artistData['artist_image'], // Şu an boş veya mevcut URL
             'related_manager' => $manager['manager_id'],
             'subscription_plan' => $artistData['subscription_plan'],
             'created_at' => date('Y-m-d H:i:s'),
             'updated_at' => date('Y-m-d H:i:s')
         ];
         
-        // Sanatçı oluştur
+        // 1. ADIM: Önce sanatçıyı veritabanında oluştur
         $result = $this->supabaseService->insert('artists', $artistInsertData);
         
         if (isset($result['error'])) {
@@ -335,71 +258,93 @@ class ArtistController extends Controller
                 ->withInput();
         }
         
-        // Eğer görsel URL'i base64 verisinden oluşturulduysa ve geçici bir dosya ise
-        // Bu adımda artist_id'yi kullanarak dosya adını güncelleyelim
-        if (!empty($artistData['artist_image']) && preg_match('/time_[0-9]+_/', $artistData['artist_image'])) {
+        // 2. ADIM: Eğer base64 görsel varsa şimdi yükle
+        if ($base64Image) {
             try {
-                // Mevcut URL'den dosya adını çıkar
-                $imageUrl = $artistData['artist_image'];
-                $urlParts = parse_url($imageUrl);
-                $pathParts = pathinfo($urlParts['path']);
+                \Log::info('Sanatçı oluşturuldu, görsel yükleniyor. Sanatçı ID: ' . $newArtistId);
                 
-                // Dosya adını al (time_timestamp_name.jpg formatında)
-                $oldFilename = $pathParts['basename'];
+                // MIME türünü çıkar
+                $mimeType = '';
+                if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $matches)) {
+                    $mimeType = 'image/' . $matches[1];
+                } else {
+                    throw new \Exception('Geçersiz görsel formatı');
+                }
                 
-                // Yeni dosya adı oluştur (artist_id.jpg formatında)
-                $extension = $pathParts['extension'] ?? 'jpg';
-                $newFilename = 'artist_' . $newArtistId . '.' . $extension;
+                // Base64 veriyi çıkar
+                $base64Data = substr($base64Image, strpos($base64Image, ',') + 1);
+                $base64Data = str_replace(' ', '+', $base64Data);
+                $decodedData = base64_decode($base64Data, true);
                 
-                // CDN'de dosya adını değiştir (burada varsayımsal bir API çağrısı yapılıyor)
-                // Not: Bu fonksiyon şu anda mevcut değil, bu nedenle devre dışı bırakıldı
-                // $renameResult = $this->fileManagerService->renameFile('artist_images', $oldFilename, $newFilename);
+                if ($decodedData === false) {
+                    throw new \Exception('Base64 veri çözülemedi');
+                }
                 
-                // Dosya adını değiştirme işlemi başarısız olduysa, yeni bir dosya oluştur
-                $tempFile = sys_get_temp_dir() . '/' . uniqid('artist_temp_');
-                $imageContent = file_get_contents($imageUrl);
+                // Dosya uzantısını belirle
+                $extension = 'jpg'; // Varsayılan olarak jpg
+                if ($mimeType === 'image/png') $extension = 'png';
+                if ($mimeType === 'image/gif') $extension = 'gif';
+                if ($mimeType === 'image/webp') $extension = 'webp';
                 
-                if ($imageContent !== false) {
-                    file_put_contents($tempFile, $imageContent);
+                // Geçici dosya oluştur - doğrudan sanatçı ID'sini kullan
+                $tempFileName = 'artist_' . $newArtistId . '.' . $extension;
+                $tempFilePath = sys_get_temp_dir() . '/' . $tempFileName;
+                
+                \Log::info('Geçici dosya oluşturuluyor: ' . $tempFilePath);
+                if (file_put_contents($tempFilePath, $decodedData) === false) {
+                    throw new \Exception('Geçici dosya oluşturulamadı');
+                }
+                
+                // UploadedFile nesnesine dönüştür
+                $uploadedFile = new \Illuminate\Http\UploadedFile(
+                    $tempFilePath,
+                    $tempFileName,
+                    $mimeType,
+                    null,
+                    true
+                );
+                
+                \Log::info('Görüntü işleniyor...');
+                // Görüntüyü işle (yeniden boyutlandır ve sıkıştır)
+                $processedImage = $this->fileManagerService->processImage($uploadedFile, 720, 0.8);
+                
+                \Log::info('Görüntü sunucuya yükleniyor...');
+                // Görüntüyü sunucuya yükle - sanatçı ID'sini uuid olarak kullan
+                $uploadResult = $this->fileManagerService->uploadFile($processedImage, 'artist_images', $newArtistId);
+                
+                \Log::info('Yükleme sonucu: ', $uploadResult);
+                
+                // Upload başarılı ise URL'i sanatçı kaydına kaydet
+                if (isset($uploadResult['success']) && $uploadResult['success']) {
+                    \Log::info('Görüntü URL\'i kaydedildi: ' . $uploadResult['url']);
                     
-                    // Dosyayı UploadedFile nesnesine dönüştür
-                    $uploadedFile = new \Illuminate\Http\UploadedFile(
-                        $tempFile,
-                        $newFilename,
-                        mime_content_type($tempFile),
-                        null,
-                        true
-                    );
-                    
-                    // Görüntüyü sunucuya yükle
-                    $uploadResult = $this->fileManagerService->uploadFile($uploadedFile, 'artist_images');
-                    
-                    // Upload başarılı ise URL'i güncelle
-                    if (isset($uploadResult['success']) && $uploadResult['success']) {
-                        // Veritabanında artist_image'ı güncelle
-                        $this->supabaseService->update('artists', [
-                            'artist_image' => $uploadResult['url']
-                        ], [
-                            'artist_id' => 'eq.' . $newArtistId
-                        ]);
-                    }
-                    
-                    // Geçici dosyayı temizle
-                    if (file_exists($tempFile)) {
-                        unlink($tempFile);
-                    }
+                    // 3. ADIM: Veritabanında artist_image'ı güncelle
+                    $this->supabaseService->update('artists', [
+                        'artist_image' => $uploadResult['url'],
+                        'updated_at' => date('Y-m-d H:i:s')
+                    ], [
+                        'artist_id' => 'eq.' . $newArtistId
+                    ]);
+                } else {
+                    \Log::error('Görüntü yükleme başarısız: ', $uploadResult);
+                }
+                
+                // Geçici dosyayı temizle
+                if (file_exists($tempFilePath)) {
+                    unlink($tempFilePath);
+                    \Log::info('Geçici dosya temizlendi');
                 }
                 
             } catch (\Exception $e) {
-                // Hata durumunda sadece logla, kullanıcıya gösterme
-                \Log::error('Sanatçı görseli yeniden adlandırma hatası: ' . $e->getMessage());
+                \Log::error('Görsel işleme hatası: ' . $e->getMessage());
+                // Görsel yüklenememişse bile sanatçı oluşturulmuş durumda, devam et
             }
         }
         
         // Session'dan artist verilerini temizle
         Session::forget('artist_creation_data');
         
-        // Başarı sayfasına yönlendir
+        // 4. ADIM: Başarı sayfasına yönlendir
         return redirect()->route('artists.payment.success', ['id' => $newArtistId]);
     }
 
