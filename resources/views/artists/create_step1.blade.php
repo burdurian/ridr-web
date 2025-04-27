@@ -535,55 +535,6 @@
             color: #7f8c8d;
             margin-left: 5px;
         }
-
-        /* Resim Yükleme Alanı */
-        .image-upload-container {
-            margin-bottom: 20px;
-        }
-        
-        .image-preview-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .image-preview {
-            width: 200px;
-            height: 200px;
-            border-radius: 10px;
-            overflow: hidden;
-            background-color: #f8f9fa;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 15px;
-            position: relative;
-        }
-        
-        .image-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 10px;
-        }
-        
-        .image-placeholder {
-            font-size: 60px;
-            color: #adb5bd;
-        }
-        
-        .image-upload-controls {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        /* Resim Kırpma Modal */
-        .cropper-container {
-            margin-bottom: 15px;
-        }
     </style>
 </head>
 <body>
@@ -664,46 +615,42 @@
                 <div class="form-section">
                     <h3 class="form-section-title">Sanatçı Bilgileri</h3>
                     <div class="row">
-                        <div class="col-md-12">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
-                                    <label for="artist_name" class="form-label">Sanatçı Adı *</label>
-                                    <input type="text" class="form-control @error('artist_name') is-invalid @enderror" id="artist_name" name="artist_name" value="{{ old('artist_name') }}" required>
-                                    @error('artist_name')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
+                        <div class="col-md-6 mb-3">
+                            <label for="artist_name" class="form-label">Sanatçı Adı *</label>
+                            <input type="text" class="form-control @error('artist_name') is-invalid @enderror" id="artist_name" name="artist_name" value="{{ old('artist_name') }}" required>
+                            @error('artist_name')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="genre" class="form-label">Müzik Türleri *</label>
+                            <div class="genre-multiselect">
+                                <div class="genre-selector" id="genre-selector" tabindex="0">
+                                    <span class="genre-placeholder">Müzik türlerini seçin...</span>
                                 </div>
-                                
-                                <div class="col-md-12 mb-3">
-                                    <label for="genre" class="form-label">Müzik Türleri *</label>
-                                    <div class="genre-multiselect">
-                                        <div class="genre-selector" id="genre-selector" tabindex="0">
-                                            <span class="genre-placeholder">Müzik türlerini seçin...</span>
-                                        </div>
-                                        <div class="genre-dropdown" id="genre-dropdown">
-                                            <div class="genre-option" data-value="Pop">Pop</div>
-                                            <div class="genre-option" data-value="Rock">Rock</div>
-                                            <div class="genre-option" data-value="HipHop">Hip Hop</div>
-                                            <div class="genre-option" data-value="R&B">R&B</div>
-                                            <div class="genre-option" data-value="Jazz">Jazz</div>
-                                            <div class="genre-option" data-value="Electronic">Electronic</div>
-                                            <div class="genre-option" data-value="Classical">Classical</div>
-                                            <div class="genre-option" data-value="Country">Country</div>
-                                            <div class="genre-option" data-value="Reggae">Reggae</div>
-                                            <div class="genre-option" data-value="Folk">Folk</div>
-                                            <div class="genre-option" data-value="Metal">Metal</div>
-                                            <div class="genre-option" data-value="Blues">Blues</div>
-                                            <div class="genre-option" data-value="Latin">Latin</div>
-                                            <div class="genre-option" data-value="Alternative">Alternative</div>
-                                            <div class="genre-option" data-value="Indie">Indie</div>
-                                        </div>
-                                        <input type="hidden" name="genre" id="genre-input" value="{{ old('genre') }}" required>
-                                        @error('genre')
-                                            <div class="invalid-feedback d-block">{{ $message }}</div>
-                                        @enderror
-                                    </div>
+                                <div class="genre-dropdown" id="genre-dropdown">
+                                    <div class="genre-option" data-value="Pop">Pop</div>
+                                    <div class="genre-option" data-value="Rock">Rock</div>
+                                    <div class="genre-option" data-value="HipHop">Hip Hop</div>
+                                    <div class="genre-option" data-value="R&B">R&B</div>
+                                    <div class="genre-option" data-value="Jazz">Jazz</div>
+                                    <div class="genre-option" data-value="Electronic">Electronic</div>
+                                    <div class="genre-option" data-value="Classical">Classical</div>
+                                    <div class="genre-option" data-value="Country">Country</div>
+                                    <div class="genre-option" data-value="Reggae">Reggae</div>
+                                    <div class="genre-option" data-value="Folk">Folk</div>
+                                    <div class="genre-option" data-value="Metal">Metal</div>
+                                    <div class="genre-option" data-value="Blues">Blues</div>
+                                    <div class="genre-option" data-value="Latin">Latin</div>
+                                    <div class="genre-option" data-value="Alternative">Alternative</div>
+                                    <div class="genre-option" data-value="Indie">Indie</div>
                                 </div>
+                                <input type="hidden" name="genre" id="genre-input" value="{{ old('genre') }}" required>
                             </div>
+                            @error('genre')
+                                <div class="text-danger mt-2" style="font-size: 0.875em;">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                 </div>
@@ -993,58 +940,60 @@
                         this.classList.add('selected');
                     }
                     
-                    updateGenreDisplay();
+                    // Input değerini ve gösterimi güncelle
                     genreInput.value = selectedGenres.join(',');
+                    updateGenreDisplay();
                 });
             });
             
-            // Herhangi bir yere tıklandığında dropdown'ı kapat
+            // Dışarı tıklandığında dropdown'ı kapat
             document.addEventListener('click', function(e) {
-                if (!genreSelector.contains(e.target)) {
+                if (!genreSelector.contains(e.target) && !genreDropdown.contains(e.target)) {
                     genreDropdown.classList.remove('show');
                     genreSelector.classList.remove('active');
                 }
             });
             
-            // Seçilen türleri gösteren fonksiyon
+            // Seçili türleri göster
             function updateGenreDisplay() {
+                // Placeholder'ı temizle
+                while (genreSelector.firstChild) {
+                    genreSelector.removeChild(genreSelector.firstChild);
+                }
+                
+                // Eğer seçili tür yoksa placeholder göster
                 if (selectedGenres.length === 0) {
-                    genrePlaceholder.style.display = 'block';
-                    genrePlaceholder.textContent = 'Müzik türlerini seçin...';
+                    const placeholder = document.createElement('span');
+                    placeholder.className = 'genre-placeholder';
+                    placeholder.textContent = 'Müzik türlerini seçin...';
+                    genreSelector.appendChild(placeholder);
                 } else {
-                    genrePlaceholder.style.display = 'none';
-                    
-                    // Önceki chip'leri temizle
-                    Array.from(genreSelector.querySelectorAll('.genre-chip')).forEach(chip => {
-                        genreSelector.removeChild(chip);
-                    });
-                    
-                    // Yeni chip'leri ekle
+                    // Seçili türleri chip olarak göster
                     selectedGenres.forEach(genre => {
                         const chip = document.createElement('div');
-                        chip.classList.add('genre-chip');
-                        chip.innerHTML = `${genre} <span class="close">&times;</span>`;
+                        chip.className = 'genre-chip';
+                        chip.innerHTML = genre + '<span class="close">&times;</span>';
                         
-                        // Chip kapatma işlevi
+                        // Chip'teki çarpıya tıklayınca türü kaldır
                         chip.querySelector('.close').addEventListener('click', function(e) {
                             e.stopPropagation();
                             selectedGenres = selectedGenres.filter(g => g !== genre);
-                            updateGenreDisplay();
                             genreInput.value = selectedGenres.join(',');
                             
-                            // Dropdown'daki seçimi de kaldır
-                            const option = Array.from(genreOptions).find(o => o.getAttribute('data-value') === genre);
-                            if (option) option.classList.remove('selected');
+                            // İlgili option'ın seçimini kaldır
+                            document.querySelector(`.genre-option[data-value="${genre}"]`).classList.remove('selected');
+                            
+                            updateGenreDisplay();
                         });
                         
-                        genreSelector.insertBefore(chip, genrePlaceholder);
+                        genreSelector.appendChild(chip);
                     });
                 }
                 
-                // Genre dropdown'daki seçimleri güncelle
+                // Option'ların seçili durumunu güncelle
                 genreOptions.forEach(option => {
-                    const genreValue = option.getAttribute('data-value');
-                    if (selectedGenres.includes(genreValue)) {
+                    const value = option.getAttribute('data-value');
+                    if (selectedGenres.includes(value)) {
                         option.classList.add('selected');
                     } else {
                         option.classList.remove('selected');
