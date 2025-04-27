@@ -12,12 +12,10 @@ use Illuminate\Support\Str;
 class ArtistController extends Controller
 {
     protected $supabaseService;
-    protected $fileManagerService;
 
-    public function __construct(SupabaseService $supabaseService, FileManagerService $fileManagerService)
+    public function __construct(SupabaseService $supabaseService)
     {
         $this->supabaseService = $supabaseService;
-        $this->fileManagerService = $fileManagerService;
     }
 
     /**
@@ -56,83 +54,41 @@ class ArtistController extends Controller
     }
 
     /**
-     * Aşama 1'den gelen verileri doğrular ve Aşama 2'yi gösterir (Ödeme)
+     * Process step 1 form submission
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
-    public function processStep1(Request $request)
+    public function process_step1(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'artist_name' => 'required|string|max:255',
+        $request->validate([
+            'artist_name' => 'required|string|max:100',
             'genre' => 'required|string|max:100',
-            'subscription_plan' => 'required|string',
-            'artist_image' => 'nullable',
+            'subscription_plan' => 'required|exists:plans,plan_id',
+            'artist_image' => 'nullable|url|max:500',
         ]);
 
-        if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-        
-        $manager = Session::get('manager');
-        
-        // Plan limitini kontrol et
-        $planResult = $this->supabaseService->select('subscription_plans', [
-            'plan_id' => 'eq.' . $request->input('subscription_plan'),
-            'select' => 'plan_id,plan_name,max_members,monthly_price,annual_price,price_currency,plan_desc,plan_features'
-        ]);
-        
-        if (isset($planResult['error']) || empty($planResult)) {
-            return redirect()->back()
-                ->with('error', 'Geçersiz abonelik planı seçildi.')
-                ->withInput();
-        }
-        
-        $plan = $planResult[0];
-        
-        // Bu plan için mevcut sanatçı sayısını kontrol et
-        $artistsResult = $this->supabaseService->select('artists', [
-            'related_manager' => 'eq.' . $manager['manager_id'],
-            'subscription_plan' => 'eq.' . $plan['plan_id'],
-            'select' => 'count'
-        ]);
-        
-        if (!isset($artistsResult['error']) && count($artistsResult) >= $plan['max_members']) {
-            return redirect()->back()
-                ->with('error', 'Bu plan için maksimum sanatçı sayısına ulaştınız. Lütfen planınızı yükseltin veya başka bir plan seçin.')
-                ->withInput();
-        }
-        
-        // Sanatçı slug oluştur
-        $slug = Str::slug($request->input('artist_name'));
-        $baseSlug = $slug;
-        $counter = 1;
-        
-        // Slugın benzersiz olduğundan emin ol
-        while (true) {
-            $checkResult = $this->supabaseService->select('artists', [
-                'artist_slug' => 'eq.' . $slug,
-                'select' => 'artist_id'
-            ]);
-            
-            if (isset($checkResult['error']) || empty($checkResult)) {
-                break;
-            }
-            
-            $slug = $baseSlug . '-' . $counter++;
-        }
-        
-        // Formdan gelen verileri session'a kaydet
-        $artistData = [
-            'artist_name' => $request->input('artist_name'),
-            'genre' => $request->input('genre'),
-            'artist_image' => $request->input('artist_image', ''),  // Base64 formatında resim verisini sakla
-            'artist_slug' => $slug,
-            'subscription_plan' => $request->input('subscription_plan'),
+        // Step 1 verileri sakla
+        $step1Data = [
+            'artist_name' => $request->artist_name,
+            'genre' => $request->genre,
+            'subscription_plan' => $request->subscription_plan,
+            'artist_image' => $request->artist_image,
         ];
-        
-        Session::put('artist_creation_data', $artistData);
-        
-        return redirect()->route('artists.create.step2', ['plan_id' => $plan['plan_id']]);
+
+        Session::put('artist_step1', $step1Data);
+
+        // SupabaseService ile planı getir
+        $supabase = new SupabaseService();
+        $plan = $supabase->getPlanById($request->subscription_plan);
+
+        if (!$plan) {
+            return redirect()->back()->with('error', 'Seçilen plan bulunamadı.');
+        }
+
+        Session::put('selected_plan', $plan);
+
+        return redirect()->route('artists.create.step2');
     }
 
     /**
@@ -175,177 +131,74 @@ class ArtistController extends Controller
     }
 
     /**
-     * Yeni sanatçı kaydeder (ödeme sonrası)
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
      */
     public function store(Request $request)
     {
-        // Ödeme başarılıysa ve session'da artist verileri varsa devam et
-        if (!Session::has('artist_creation_data')) {
-            return redirect()->route('artists.create.step1')
-                ->with('error', 'Sanatçı oluşturma verileri eksik. Lütfen yeniden deneyin.');
+        // Ödeme işlemi başarılıysa, artist kaydını oluştur
+        $step1 = Session::get('artist_step1');
+        $plan = Session::get('selected_plan');
+        
+        // Manager bilgilerini al
+        $managerId = session('manager')['id'] ?? null;
+        
+        if (!$managerId) {
+            return redirect()->route('dashboard')->with('error', 'Oturum bilgilerinize ulaşılamadı. Lütfen tekrar giriş yapın.');
         }
         
-        // Session'dan artist verilerini al
-        $artistData = Session::get('artist_creation_data');
-        $manager = Session::get('manager');
+        // Sanatçı adından slug oluştur
+        $artistSlug = \Str::slug($step1['artist_name']);
         
-        // Payment sonucunu kontrol et - Bu örnekte ödeme başarılı kabul ediyoruz
-        // Gerçek uygulamada, İyzico veya başka bir ödeme geçidi entegrasyonu olacaktır
+        // SupabaseService ile artistleri getir (slug kontrolü için)
+        $supabase = new SupabaseService();
+        $existingArtists = $supabase->getArtistsByManager($managerId);
         
-        // Menajer fatura bilgilerini güncelle
-        $managerUpdateData = [];
-        $billingType = $request->input('billing_type', 'personal');
+        // Slug benzersiz değilse, sonuna numara ekle
+        $slugCount = 0;
+        $originalSlug = $artistSlug;
         
-        if ($billingType === 'personal') {
-            $managerUpdateData['manager_tax_kimlikno'] = $request->input('billing_identity_number');
-            // Eğer daha önce kurumsal bilgi varsa ve şimdi bireysel seçildiyse, kurumsal bilgileri NULL yap
-            $managerUpdateData['company_tax_number'] = null;
-            $managerUpdateData['company_tax_office'] = null;
-            $managerUpdateData['company_legal_name'] = null;
-        } else {
-            $managerUpdateData['company_tax_number'] = $request->input('billing_tax_number');
-            $managerUpdateData['company_tax_office'] = $request->input('billing_tax_office');
-            $managerUpdateData['company_legal_name'] = $request->input('billing_legal_name');
-            // Eğer daha önce bireysel bilgi varsa ve şimdi kurumsal seçildiyse, bireysel bilgileri NULL yap
-            $managerUpdateData['manager_tax_kimlikno'] = null;
-        }
-        
-        // Menajer bilgilerini güncelle
-        if (!empty($managerUpdateData)) {
-            $this->supabaseService->update('managers', $managerUpdateData, [
-                'manager_id' => 'eq.' . $manager['manager_id']
-            ]);
+        while (true) {
+            $slugExists = false;
+            foreach ($existingArtists as $artist) {
+                if ($artist['artist_slug'] === $artistSlug) {
+                    $slugExists = true;
+                    break;
+                }
+            }
             
-            // Session'daki menajer bilgilerini güncelle
-            $manager = array_merge($manager, $managerUpdateData);
-            Session::put('manager', $manager);
+            if (!$slugExists) {
+                break;
+            }
+            
+            $slugCount++;
+            $artistSlug = $originalSlug . '-' . $slugCount;
         }
         
-        // ÖNEMLİ: Geçici olarak base64 görselini kaydet
-        $base64Image = null;
-        if (!empty($artistData['artist_image']) && strpos($artistData['artist_image'], 'data:image/') === 0) {
-            $base64Image = $artistData['artist_image'];
-            $artistData['artist_image'] = ''; // Şimdilik boş bırak, sanatçı oluşturulduktan sonra yüklenecek
-        }
-        
-        // Sanatçı verilerini hazırla
-        $artistInsertData = [
-            'artist_name' => $artistData['artist_name'],
-            'artist_slug' => $artistData['artist_slug'],
-            'genre' => $artistData['genre'],
-            'artist_image' => $artistData['artist_image'], // Şu an boş veya mevcut URL
-            'related_manager' => $manager['manager_id'],
-            'subscription_plan' => $artistData['subscription_plan'],
-            'created_at' => date('Y-m-d H:i:s'),
-            'updated_at' => date('Y-m-d H:i:s')
+        // Artistin Supabase'e kaydedilmesi
+        $artistData = [
+            'artist_name' => $step1['artist_name'],
+            'artist_slug' => $artistSlug,
+            'genre' => $step1['genre'],
+            'manager_id' => $managerId,
+            'plan_id' => $plan['plan_id'],
+            'artist_image' => $step1['artist_image'] ?? null,
         ];
         
-        // 1. ADIM: Önce sanatçıyı veritabanında oluştur
-        $result = $this->supabaseService->insert('artists', $artistInsertData);
+        $result = $supabase->createArtist($artistData);
         
-        if (isset($result['error'])) {
-            return redirect()->route('artists.create.step1')
-                ->with('error', 'Sanatçı oluşturulurken bir hata oluştu: ' . $result['error']['message'])
-                ->withInput();
+        if ($result) {
+            // Session temizle
+            Session::forget('artist_step1');
+            Session::forget('selected_plan');
+            
+            // Başarı mesajı ver ve dashboard'a yönlendir
+            return redirect()->route('dashboard')->with('success', 'Sanatçı başarıyla oluşturuldu!');
+        } else {
+            return redirect()->route('artists.create.step1')->with('error', 'Sanatçı oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.');
         }
-        
-        // Yeni oluşturulan sanatçının ID'sini al
-        $newArtistId = $result[0]['artist_id'] ?? null;
-        
-        if (!$newArtistId) {
-            return redirect()->route('artists.create.step1')
-                ->with('error', 'Sanatçı oluşturuldu fakat ID alınamadı.')
-                ->withInput();
-        }
-        
-        // 2. ADIM: Eğer base64 görsel varsa şimdi yükle
-        if ($base64Image) {
-            try {
-                \Log::info('Sanatçı oluşturuldu, görsel yükleniyor. Sanatçı ID: ' . $newArtistId);
-                
-                // MIME türünü çıkar
-                $mimeType = '';
-                if (preg_match('/^data:image\/(\w+);base64,/', $base64Image, $matches)) {
-                    $mimeType = 'image/' . $matches[1];
-                } else {
-                    throw new \Exception('Geçersiz görsel formatı');
-                }
-                
-                // Base64 veriyi çıkar
-                $base64Data = substr($base64Image, strpos($base64Image, ',') + 1);
-                $base64Data = str_replace(' ', '+', $base64Data);
-                $decodedData = base64_decode($base64Data, true);
-                
-                if ($decodedData === false) {
-                    throw new \Exception('Base64 veri çözülemedi');
-                }
-                
-                // Dosya uzantısını belirle
-                $extension = 'jpg'; // Varsayılan olarak jpg
-                if ($mimeType === 'image/png') $extension = 'png';
-                if ($mimeType === 'image/gif') $extension = 'gif';
-                if ($mimeType === 'image/webp') $extension = 'webp';
-                
-                // Geçici dosya oluştur - doğrudan sanatçı ID'sini kullan
-                $tempFileName = 'artist_' . $newArtistId . '.' . $extension;
-                $tempFilePath = sys_get_temp_dir() . '/' . $tempFileName;
-                
-                \Log::info('Geçici dosya oluşturuluyor: ' . $tempFilePath);
-                if (file_put_contents($tempFilePath, $decodedData) === false) {
-                    throw new \Exception('Geçici dosya oluşturulamadı');
-                }
-                
-                // UploadedFile nesnesine dönüştür
-                $uploadedFile = new \Illuminate\Http\UploadedFile(
-                    $tempFilePath,
-                    $tempFileName,
-                    $mimeType,
-                    null,
-                    true
-                );
-                
-                \Log::info('Görüntü işleniyor...');
-                // Görüntüyü işle (yeniden boyutlandır ve sıkıştır)
-                $processedImage = $this->fileManagerService->processImage($uploadedFile, 720, 0.8);
-                
-                \Log::info('Görüntü sunucuya yükleniyor...');
-                // Görüntüyü sunucuya yükle - sanatçı ID'sini uuid olarak kullan
-                $uploadResult = $this->fileManagerService->uploadFile($processedImage, 'artist_images', $newArtistId);
-                
-                \Log::info('Yükleme sonucu: ', $uploadResult);
-                
-                // Upload başarılı ise URL'i sanatçı kaydına kaydet
-                if (isset($uploadResult['success']) && $uploadResult['success']) {
-                    \Log::info('Görüntü URL\'i kaydedildi: ' . $uploadResult['url']);
-                    
-                    // 3. ADIM: Veritabanında artist_image'ı güncelle
-                    $this->supabaseService->update('artists', [
-                        'artist_image' => $uploadResult['url'],
-                        'updated_at' => date('Y-m-d H:i:s')
-                    ], [
-                        'artist_id' => 'eq.' . $newArtistId
-                    ]);
-                } else {
-                    \Log::error('Görüntü yükleme başarısız: ', $uploadResult);
-                }
-                
-                // Geçici dosyayı temizle
-                if (file_exists($tempFilePath)) {
-                    unlink($tempFilePath);
-                    \Log::info('Geçici dosya temizlendi');
-                }
-                
-            } catch (\Exception $e) {
-                \Log::error('Görsel işleme hatası: ' . $e->getMessage());
-                // Görsel yüklenememişse bile sanatçı oluşturulmuş durumda, devam et
-            }
-        }
-        
-        // Session'dan artist verilerini temizle
-        Session::forget('artist_creation_data');
-        
-        // 4. ADIM: Başarı sayfasına yönlendir
-        return redirect()->route('artists.payment.success', ['id' => $newArtistId]);
     }
 
     /**
@@ -1030,5 +883,42 @@ class ArtistController extends Controller
         }
         
         return null;
+    }
+
+    /**
+     * Sanatçı resmi yükleme
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
+    public function uploadImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|max:10240', // max 10MB
+        ]);
+        
+        $fileManager = new FileManagerService();
+        $result = $fileManager->uploadImage(
+            $request->file('image'), 
+            'artist_images', 
+            null, 
+            [
+                'width' => 720, 
+                'height' => 720, 
+                'quality' => 80
+            ]
+        );
+        
+        if ($result && isset($result['url'])) {
+            return response()->json([
+                'success' => true,
+                'url' => $result['url']
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Resim yüklenemedi. Lütfen tekrar deneyiniz.'
+        ], 500);
     }
 } 

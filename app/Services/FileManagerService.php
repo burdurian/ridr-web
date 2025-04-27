@@ -2,310 +2,162 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Exception;
-use GuzzleHttp\Client;
+use Intervention\Image\Facades\Image;
 
 class FileManagerService
 {
     protected $apiUrl;
-    protected $apiKey;
-
+    
     public function __construct()
     {
-        $this->apiUrl = 'https://cdn.ridr.live/api/upload';
-        $this->apiKey = env('RIDR_API_KEY', '');
+        $this->apiUrl = 'https://cdn.ridr.live/ridrapp.api';
     }
-
+    
     /**
-     * Dosyayı cdn.ridr.live'a yükler
-     *
-     * @param UploadedFile $file Yüklenecek dosya
-     * @param string $type Dosya türü (artist_images, user_profile_images, vb.)
-     * @param string|null $uuid Klasör adı (isteğe bağlı)
-     * @return array Sonuç (başarılı ise url, başarısız ise error)
+     * Resim dosyasını yükle ve işle
+     * 
+     * @param UploadedFile $file
+     * @param string $type Klasör tipi (örn: artist_images)
+     * @param string|null $uuid Benzersiz ID (bazı klasörler için gerekli)
+     * @param array $imageOptions Resim işleme seçenekleri
+     * @return array|false
      */
-    public function uploadFile(UploadedFile $file, string $type, string $uuid = null): array
+    public function uploadImage(UploadedFile $file, string $type, ?string $uuid = null, array $imageOptions = [])
     {
         try {
-            // Dosyanın geçerli olduğunu kontrol et
-            if (!$file->isValid()) {
-                Log::error('Dosya geçerli değil', [
-                    'error' => $file->getError(),
-                    'errorMessage' => $file->getErrorMessage()
-                ]);
-                return [
-                    'success' => false,
-                    'error' => 'Yüklenen dosya geçerli değil: ' . $file->getErrorMessage()
-                ];
+            // Resim işleme seçenekleri
+            $defaultOptions = [
+                'width' => null,
+                'height' => 720, // Varsayılan 720p yükseklik
+                'quality' => 80, // %80 kalite
+                'format' => 'jpg'
+            ];
+            
+            $options = array_merge($defaultOptions, $imageOptions);
+            
+            // Geçici bir dosyada resmi işleyelim
+            $image = Image::make($file->getRealPath());
+            
+            // Boyutlandırma
+            if ($options['width'] && $options['height']) {
+                $image->fit($options['width'], $options['height']);
+            } elseif ($options['width']) {
+                $image->widen($options['width'], function ($constraint) {
+                    $constraint->upsize();
+                });
+            } elseif ($options['height']) {
+                $image->heighten($options['height'], function ($constraint) {
+                    $constraint->upsize();
+                });
             }
             
-            // Dosya türünü ve boyutunu logla
-            Log::info('Dosya yükleme başlatılıyor', [
-                'filename' => $file->getClientOriginalName(),
+            // Geçici dosyaya kaydet
+            $tempPath = sys_get_temp_dir() . '/' . uniqid() . '.' . $options['format'];
+            $image->save($tempPath, $options['quality']);
+            
+            // API'ye yükle
+            $response = Http::attach(
+                'file', 
+                file_get_contents($tempPath), 
+                pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME) . '.' . $options['format']
+            )->post($this->apiUrl, [
                 'type' => $type,
-                'mime' => $file->getMimeType(),
-                'size' => $file->getSize(),
                 'uuid' => $uuid
             ]);
             
-            // MultipartForm verilerini hazırla
-            $multipart = [
-                [
-                    'name' => 'folder',
-                    'contents' => $type
-                ],
-                [
-                    'name' => 'image',
-                    'contents' => fopen($file->getRealPath(), 'r'),
-                    'filename' => $file->getClientOriginalName()
-                ]
-            ];
+            // Geçici dosyayı sil
+            @unlink($tempPath);
             
-            if ($uuid) {
-                $multipart[] = [
-                    'name' => 'uuid',
-                    'contents' => $uuid
-                ];
+            if ($response->successful()) {
+                return $response->json();
             }
             
-            // Guzzle client oluştur
-            $client = new Client(['verify' => false]);
-            
-            // API isteği yap
-            Log::info('API isteği gönderiliyor: ' . $this->apiUrl);
-            $response = $client->request('POST', $this->apiUrl, [
-                'multipart' => $multipart,
-                'timeout' => 30
-            ]);
-            
-            // Yanıtı kontrol et
-            $statusCode = $response->getStatusCode();
-            $body = $response->getBody()->getContents();
-            
-            Log::info('API yanıtı alındı', [
-                'status' => $statusCode,
-                'body' => $body
-            ]);
-            
-            if ($statusCode === 200 || $statusCode === 201) {
-                $result = json_decode($body, true);
-                
-                if (isset($result['url'])) {
-                    Log::info('Dosya başarıyla yüklendi', ['url' => $result['url']]);
-                    return [
-                        'success' => true,
-                        'url' => $result['url']
-                    ];
-                } else {
-                    Log::error('API yanıtında URL yok', ['response' => $result]);
-                    return [
-                        'success' => false,
-                        'error' => 'API yanıtında URL bilgisi bulunamadı.'
-                    ];
-                }
-            }
-
-            // Hata durumunda
-            Log::error('Dosya yükleme hatası', [
-                'url' => $this->apiUrl,
-                'status' => $statusCode,
-                'body' => $body
-            ]);
-
-            return [
-                'success' => false,
-                'error' => 'Dosya yüklenirken bir hata oluştu (HTTP ' . $statusCode . '): ' . $body
-            ];
-
-        } catch (Exception $e) {
-            Log::error('Dosya yükleme istisnası', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return [
-                'success' => false,
-                'error' => 'Dosya yüklenirken bir istisna oluştu: ' . $e->getMessage()
-            ];
-        }
-    }
-
-    /**
-     * Görüntüyü yeniden boyutlandırır ve sıkıştırır
-     *
-     * @param UploadedFile $imageFile Görüntü dosyası
-     * @param int $height Hedef yükseklik
-     * @param float $quality Kalite (0.0-1.0)
-     * @return UploadedFile İşlenmiş görüntü dosyası
-     */
-    public function processImage(UploadedFile $imageFile, int $height = 720, float $quality = 0.8): UploadedFile
-    {
-        try {
-            // Geçici dosya oluştur
-            $tempPath = sys_get_temp_dir() . '/' . uniqid('img_') . '.jpg';
-            
-            // Görüntüyü GD kütüphanesi ile işle
-            $sourceImage = $this->createImageFromFile($imageFile);
-            
-            if (!$sourceImage) {
-                throw new Exception("Görüntü açılamadı.");
-            }
-            
-            // Orijinal boyutları al
-            $srcWidth = imagesx($sourceImage);
-            $srcHeight = imagesy($sourceImage);
-            
-            // Yeni boyutları hesapla
-            $ratio = $srcHeight / $height;
-            $newWidth = $srcWidth / $ratio;
-            $newHeight = $height;
-            
-            // Yeni görüntü oluştur
-            $destImage = imagecreatetruecolor($newWidth, $newHeight);
-            
-            // Görüntüyü yeniden boyutlandır
-            imagecopyresampled(
-                $destImage, 
-                $sourceImage, 
-                0, 0, 0, 0, 
-                $newWidth, $newHeight, 
-                $srcWidth, $srcHeight
-            );
-            
-            // JPEG olarak kaydet
-            imagejpeg($destImage, $tempPath, $quality * 100);
-            
-            // Kaynakları temizle
-            imagedestroy($sourceImage);
-            imagedestroy($destImage);
-
-            // Geçici dosyadan yeni bir UploadedFile oluştur
-            return new UploadedFile(
-                $tempPath,
-                pathinfo($imageFile->getClientOriginalName(), PATHINFO_FILENAME) . '.jpg',
-                'image/jpeg',
-                null,
-                true // Test modu = true, dosya geçici olarak oluşturuldu
-            );
-
-        } catch (Exception $e) {
-            Log::error('Görüntü işleme hatası', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            // Hata durumunda orijinal dosyayı döndür
-            return $imageFile;
+            Log::error('Dosya yükleme hatası: ' . $response->body());
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Dosya yükleme hatası: ' . $e->getMessage());
+            return false;
         }
     }
     
     /**
-     * Dosya türüne göre uygun görüntü oluşturma fonksiyonunu çağırır
-     *
+     * Herhangi bir dosyayı API'ye yükler
+     * 
      * @param UploadedFile $file
-     * @return resource|false GD görüntü kaynağı veya false
+     * @param string $type Klasör tipi (örn: artist_files)
+     * @param string|null $uuid Benzersiz ID (bazı klasörler için gerekli)
+     * @return array|false
      */
-    private function createImageFromFile(UploadedFile $file)
-    {
-        $mime = $file->getMimeType();
-        $path = $file->getRealPath();
-        
-        switch ($mime) {
-            case 'image/jpeg':
-                return imagecreatefromjpeg($path);
-            case 'image/png':
-                return imagecreatefrompng($path);
-            case 'image/gif':
-                return imagecreatefromgif($path);
-            case 'image/webp':
-                return imagecreatefromwebp($path);
-            default:
-                return false;
-        }
-    }
-
-    /**
-     * Dosyaları listeler
-     *
-     * @param string $type Dosya türü
-     * @param string|null $uuid Klasör adı (isteğe bağlı)
-     * @return array Dosya listesi
-     */
-    public function listFiles(string $type, string $uuid = null): array
+    public function uploadFile(UploadedFile $file, string $type, ?string $uuid = null)
     {
         try {
-            $url = 'https://cdn.ridr.live/api/list';
-            $params = ['folder' => $type];
+            $response = Http::attach(
+                'file', 
+                file_get_contents($file->getRealPath()), 
+                $file->getClientOriginalName()
+            )->post($this->apiUrl, [
+                'type' => $type,
+                'uuid' => $uuid
+            ]);
+            
+            if ($response->successful()) {
+                return $response->json();
+            }
+            
+            Log::error('Dosya yükleme hatası: ' . $response->body());
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Dosya yükleme hatası: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Belirli bir klasördeki dosyaları listeler
+     * 
+     * @param string $type Klasör tipi
+     * @param string|null $uuid Benzersiz ID (bazı klasörler için gerekli)
+     * @return array|false
+     */
+    public function listFiles(string $type, ?string $uuid = null)
+    {
+        try {
+            $params = ['type' => $type];
             
             if ($uuid) {
                 $params['uuid'] = $uuid;
             }
             
-            // Guzzle client oluştur
-            $client = new Client(['verify' => false]);
+            $response = Http::get($this->apiUrl, $params);
             
-            // API isteği yap
-            Log::info('API listesi isteği gönderiliyor: ' . $url, $params);
-            
-            $response = $client->request('GET', $url, [
-                'query' => $params,
-                'timeout' => 15
-            ]);
-            
-            $statusCode = $response->getStatusCode();
-            $body = $response->getBody()->getContents();
-            
-            if ($statusCode === 200) {
-                $result = json_decode($body, true);
-                return [
-                    'success' => true,
-                    'files' => $result['files'] ?? []
-                ];
+            if ($response->successful()) {
+                return $response->json();
             }
-
-            Log::error('Dosya listesi alınamadı', [
-                'status' => $statusCode,
-                'body' => $body
-            ]);
             
-            return [
-                'success' => false,
-                'error' => 'Dosya listesi alınamadı: ' . $body
-            ];
-
-        } catch (Exception $e) {
-            Log::error('Dosya listesi alma istisnası', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-            
-            return [
-                'success' => false,
-                'error' => 'Dosya listesi alınırken hata oluştu: ' . $e->getMessage()
-            ];
+            Log::error('Dosya listeleme hatası: ' . $response->body());
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Dosya listeleme hatası: ' . $e->getMessage());
+            return false;
         }
     }
-
+    
     /**
      * Dosyayı siler
-     *
-     * @param string $type Dosya türü
+     * 
+     * @param string $type Klasör tipi
      * @param string $filename Dosya adı
-     * @param string|null $uuid Klasör adı (isteğe bağlı)
-     * @return array Sonuç
+     * @param string|null $uuid Benzersiz ID (bazı klasörler için gerekli)
+     * @return bool
      */
-    public function deleteFile(string $type, string $filename, string $uuid = null): array
+    public function deleteFile(string $type, string $filename, ?string $uuid = null)
     {
         try {
-            $url = 'https://cdn.ridr.live/api/delete';
             $params = [
-                'folder' => $type,
+                'type' => $type,
                 'filename' => $filename
             ];
             
@@ -313,48 +165,17 @@ class FileManagerService
                 $params['uuid'] = $uuid;
             }
             
-            // Guzzle client oluştur
-            $client = new Client(['verify' => false]);
+            $response = Http::delete($this->apiUrl, $params);
             
-            // API isteği yap
-            Log::info('API silme isteği gönderiliyor: ' . $url, $params);
-            
-            $response = $client->request('DELETE', $url, [
-                'json' => $params,
-                'timeout' => 15
-            ]);
-            
-            $statusCode = $response->getStatusCode();
-            $body = $response->getBody()->getContents();
-            
-            if ($statusCode === 200) {
-                return [
-                    'success' => true,
-                    'message' => 'Dosya başarıyla silindi'
-                ];
+            if ($response->successful()) {
+                return true;
             }
             
-            Log::error('Dosya silinemedi', [
-                'status' => $statusCode,
-                'body' => $body
-            ]);
-
-            return [
-                'success' => false,
-                'error' => 'Dosya silinemedi: ' . $body
-            ];
-
-        } catch (Exception $e) {
-            Log::error('Dosya silme istisnası', [
-                'message' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ]);
-            
-            return [
-                'success' => false,
-                'error' => 'Dosya silinirken hata oluştu: ' . $e->getMessage()
-            ];
+            Log::error('Dosya silme hatası: ' . $response->body());
+            return false;
+        } catch (\Exception $e) {
+            Log::error('Dosya silme hatası: ' . $e->getMessage());
+            return false;
         }
     }
 } 

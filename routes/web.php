@@ -19,7 +19,7 @@ use App\Http\Middleware\ManagerAuth;
 */
 
 // Auth rotaları
-Route::get('/', [AuthController::class, 'checkMobileToken'])->name('login');
+Route::get('/', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
@@ -58,4 +58,7 @@ Route::middleware([ManagerAuth::class])->group(function () {
     Route::get('/subscriptions/my', [SubscriptionController::class, 'show'])->name('subscriptions.show');
     Route::get('/subscriptions/{id}/cancel', [SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
     Route::delete('/subscriptions/{id}', [SubscriptionController::class, 'destroy'])->name('subscriptions.destroy');
+
+    // Sanatçı resmi yükleme
+    Route::post('/artists/upload-image', [ArtistController::class, 'uploadImage'])->name('artists.upload-image');
 });
