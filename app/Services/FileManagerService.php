@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Exception;
+use GuzzleHttp\Client;
 
 class FileManagerService
 {
@@ -14,7 +15,7 @@ class FileManagerService
 
     public function __construct()
     {
-        $this->apiUrl = 'https://cdn.ridr.live/ridrapp.api';
+        $this->apiUrl = 'https://cdn.ridr.live/api/upload';
         $this->apiKey = env('RIDR_API_KEY', '');
     }
 
@@ -50,29 +51,47 @@ class FileManagerService
                 'uuid' => $uuid
             ]);
             
-            // Form verilerini hazırla
-            $formData = [
-                'type' => $type,
-                'file' => $file
+            // MultipartForm verilerini hazırla
+            $multipart = [
+                [
+                    'name' => 'folder',
+                    'contents' => $type
+                ],
+                [
+                    'name' => 'image',
+                    'contents' => fopen($file->getRealPath(), 'r'),
+                    'filename' => $file->getClientOriginalName()
+                ]
             ];
-
+            
             if ($uuid) {
-                $formData['uuid'] = $uuid;
+                $multipart[] = [
+                    'name' => 'uuid',
+                    'contents' => $uuid
+                ];
             }
-
+            
+            // Guzzle client oluştur
+            $client = new Client(['verify' => false]);
+            
             // API isteği yap
             Log::info('API isteği gönderiliyor: ' . $this->apiUrl);
-            $response = Http::withoutVerifying()
-                ->timeout(30)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey
-                ])
-                ->post($this->apiUrl, $formData);
-
+            $response = $client->request('POST', $this->apiUrl, [
+                'multipart' => $multipart,
+                'timeout' => 30
+            ]);
+            
             // Yanıtı kontrol et
-            if ($response->successful()) {
-                $result = $response->json();
-                Log::info('API yanıtı alındı', ['response' => $result]);
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
+            
+            Log::info('API yanıtı alındı', [
+                'status' => $statusCode,
+                'body' => $body
+            ]);
+            
+            if ($statusCode === 200 || $statusCode === 201) {
+                $result = json_decode($body, true);
                 
                 if (isset($result['url'])) {
                     Log::info('Dosya başarıyla yüklendi', ['url' => $result['url']]);
@@ -90,21 +109,15 @@ class FileManagerService
             }
 
             // Hata durumunda
-            $statusCode = $response->status();
-            $responseBody = $response->body();
-            $responseJson = $response->json();
-            
             Log::error('Dosya yükleme hatası', [
                 'url' => $this->apiUrl,
                 'status' => $statusCode,
-                'body' => $responseBody,
-                'json' => $responseJson
+                'body' => $body
             ]);
 
             return [
                 'success' => false,
-                'error' => 'Dosya yüklenirken bir hata oluştu (HTTP ' . $statusCode . '): ' . 
-                    ($responseJson['error'] ?? $responseBody ?? 'Bilinmeyen hata')
+                'error' => 'Dosya yüklenirken bir hata oluştu (HTTP ' . $statusCode . '): ' . $body
             ];
 
         } catch (Exception $e) {
@@ -226,29 +239,52 @@ class FileManagerService
     public function listFiles(string $type, string $uuid = null): array
     {
         try {
-            $params = ['type' => $type];
+            $url = 'https://cdn.ridr.live/api/list';
+            $params = ['folder' => $type];
             
             if ($uuid) {
                 $params['uuid'] = $uuid;
             }
-
-            $response = Http::withoutVerifying()
-                ->timeout(15)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey
-                ])
-                ->get($this->apiUrl, $params);
-
-            if ($response->successful()) {
-                return $response->json();
+            
+            // Guzzle client oluştur
+            $client = new Client(['verify' => false]);
+            
+            // API isteği yap
+            Log::info('API listesi isteği gönderiliyor: ' . $url, $params);
+            
+            $response = $client->request('GET', $url, [
+                'query' => $params,
+                'timeout' => 15
+            ]);
+            
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
+            
+            if ($statusCode === 200) {
+                $result = json_decode($body, true);
+                return [
+                    'success' => true,
+                    'files' => $result['files'] ?? []
+                ];
             }
 
+            Log::error('Dosya listesi alınamadı', [
+                'status' => $statusCode,
+                'body' => $body
+            ]);
+            
             return [
                 'success' => false,
-                'error' => 'Dosya listesi alınamadı: ' . ($response->json()['error'] ?? 'Bilinmeyen hata')
+                'error' => 'Dosya listesi alınamadı: ' . $body
             ];
 
         } catch (Exception $e) {
+            Log::error('Dosya listesi alma istisnası', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
             return [
                 'success' => false,
                 'error' => 'Dosya listesi alınırken hata oluştu: ' . $e->getMessage()
@@ -267,35 +303,54 @@ class FileManagerService
     public function deleteFile(string $type, string $filename, string $uuid = null): array
     {
         try {
+            $url = 'https://cdn.ridr.live/api/delete';
             $params = [
-                'type' => $type,
+                'folder' => $type,
                 'filename' => $filename
             ];
             
             if ($uuid) {
                 $params['uuid'] = $uuid;
             }
-
-            $response = Http::withoutVerifying()
-                ->timeout(15)
-                ->withHeaders([
-                    'X-API-Key' => $this->apiKey
-                ])
-                ->delete($this->apiUrl, $params);
-
-            if ($response->successful()) {
+            
+            // Guzzle client oluştur
+            $client = new Client(['verify' => false]);
+            
+            // API isteği yap
+            Log::info('API silme isteği gönderiliyor: ' . $url, $params);
+            
+            $response = $client->request('DELETE', $url, [
+                'json' => $params,
+                'timeout' => 15
+            ]);
+            
+            $statusCode = $response->getStatusCode();
+            $body = $response->getBody()->getContents();
+            
+            if ($statusCode === 200) {
                 return [
                     'success' => true,
                     'message' => 'Dosya başarıyla silindi'
                 ];
             }
+            
+            Log::error('Dosya silinemedi', [
+                'status' => $statusCode,
+                'body' => $body
+            ]);
 
             return [
                 'success' => false,
-                'error' => 'Dosya silinemedi: ' . ($response->json()['error'] ?? 'Bilinmeyen hata')
+                'error' => 'Dosya silinemedi: ' . $body
             ];
 
         } catch (Exception $e) {
+            Log::error('Dosya silme istisnası', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ]);
+            
             return [
                 'success' => false,
                 'error' => 'Dosya silinirken hata oluştu: ' . $e->getMessage()
