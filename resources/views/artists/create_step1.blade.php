@@ -1126,6 +1126,53 @@
                 removeImageBtn.style.display = 'none';
             });
             
+            function uploadImage(blob) {
+                const formData = new FormData();
+                formData.append('image', blob, 'artist_image.jpg');
+                formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+                
+                // Yükleme göstergesi
+                const uploadingIndicator = document.createElement('div');
+                uploadingIndicator.classList.add('uploading-indicator');
+                uploadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                imagePreview.appendChild(uploadingIndicator);
+                
+                // API'ye gönder
+                fetch('{{ route('artists.upload-image') }}', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest', // Tarayıcının AJAX isteği olduğunu belirtmek için
+                        'Accept': 'application/json'           // JSON yanıt beklendiğini belirtmek için
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Sunucu yanıtı başarısız: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (uploadingIndicator && uploadingIndicator.parentNode) {
+                        uploadingIndicator.parentNode.removeChild(uploadingIndicator);
+                    }
+                    
+                    if (data.success) {
+                        artistImageUrl.value = data.url;
+                    } else {
+                        throw new Error(data.message || 'Resim yüklenemedi');
+                    }
+                })
+                .catch(error => {
+                    console.error('Yükleme hatası:', error);
+                    if (uploadingIndicator && uploadingIndicator.parentNode) {
+                        uploadingIndicator.parentNode.removeChild(uploadingIndicator);
+                    }
+                    imageError.textContent = 'Resim yüklenirken bir hata oluştu. Lütfen tekrar deneyin.';
+                    imageError.style.display = 'block';
+                });
+            }
+            
             function createCropperModal(imageSrc) {
                 // Modal HTML
                 const modalHTML = `
@@ -1153,7 +1200,8 @@
                 // Modal'ı ekle
                 document.body.insertAdjacentHTML('beforeend', modalHTML);
                 
-                const modal = new bootstrap.Modal(document.getElementById('imageCropperModal'));
+                const modalElement = document.getElementById('imageCropperModal');
+                const modal = new bootstrap.Modal(modalElement);
                 modal.show();
                 
                 // Cropper.js'i başlat
@@ -1192,54 +1240,24 @@
                         // Modalı kapat
                         modal.hide();
                         
-                        // Modalı DOM'dan kaldır
-                        document.getElementById('imageCropperModal').remove();
-                        
                         // Cropper'ı temizle
                         cropper.destroy();
                     }, 'image/jpeg', 0.8);
                 });
                 
                 // Modal kapatıldığında
-                document.getElementById('imageCropperModal').addEventListener('hidden.bs.modal', function() {
+                modalElement.addEventListener('hidden.bs.modal', function() {
                     if (cropper) {
                         cropper.destroy();
                     }
-                    document.getElementById('imageCropperModal').remove();
-                });
-            }
-            
-            function uploadImage(blob) {
-                const formData = new FormData();
-                formData.append('image', blob, 'artist_image.jpg');
-                formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-                
-                // Yükleme göstergesi
-                const uploadingIndicator = document.createElement('div');
-                uploadingIndicator.classList.add('uploading-indicator');
-                uploadingIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                imagePreview.appendChild(uploadingIndicator);
-                
-                // API'ye gönder
-                fetch('{{ route('artists.upload-image') }}', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => response.json())
-                .then(data => {
-                    imagePreview.removeChild(uploadingIndicator);
                     
-                    if (data.success) {
-                        artistImageUrl.value = data.url;
-                    } else {
-                        throw new Error(data.message || 'Resim yüklenemedi');
-                    }
-                })
-                .catch(error => {
-                    console.error('Yükleme hatası:', error);
-                    imagePreview.removeChild(uploadingIndicator);
-                    imageError.textContent = 'Resim yüklenirken bir hata oluştu. Lütfen tekrar deneyin.';
-                    imageError.style.display = 'block';
+                    // Modalın DOM'dan kaldırılması için timeout kullanıyoruz
+                    // böylece modal tam olarak kapandıktan sonra kaldırılır
+                    setTimeout(() => {
+                        if (modalElement && modalElement.parentNode) {
+                            modalElement.parentNode.removeChild(modalElement);
+                        }
+                    }, 300);
                 });
             }
         });

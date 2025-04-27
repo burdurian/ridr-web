@@ -893,32 +893,48 @@ class ArtistController extends Controller
      */
     public function uploadImage(Request $request)
     {
-        $request->validate([
-            'image' => 'required|image|max:10240', // max 10MB
-        ]);
-        
-        $fileManager = new FileManagerService();
-        $result = $fileManager->uploadImage(
-            $request->file('image'), 
-            'artist_images', 
-            null, 
-            [
-                'width' => 720, 
-                'height' => 720, 
-                'quality' => 80
-            ]
-        );
-        
-        if ($result && isset($result['url'])) {
+        // AJAX isteği olup olmadığını kontrol et
+        if (!$request->ajax()) {
             return response()->json([
-                'success' => true,
-                'url' => $result['url']
-            ]);
+                'success' => false,
+                'message' => 'Bu endpoint sadece AJAX istekleri için kullanılabilir.'
+            ], 400);
         }
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'Resim yüklenemedi. Lütfen tekrar deneyiniz.'
-        ], 500);
+
+        try {
+            $request->validate([
+                'image' => 'required|image|max:10240', // max 10MB
+            ]);
+            
+            $fileManager = new FileManagerService();
+            $result = $fileManager->uploadImage(
+                $request->file('image'), 
+                'artist_images', 
+                null, 
+                [
+                    'width' => 720, 
+                    'height' => 720, 
+                    'quality' => 80
+                ]
+            );
+            
+            if ($result && isset($result['url'])) {
+                return response()->json([
+                    'success' => true,
+                    'url' => $result['url']
+                ]);
+            }
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Resim yüklenemedi. Lütfen tekrar deneyiniz.'
+            ], 500);
+        } catch (\Exception $e) {
+            \Log::error('Resim yükleme hatası: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Resim yüklenirken bir hata oluştu: ' . $e->getMessage()
+            ], 500);
+        }
     }
 } 
