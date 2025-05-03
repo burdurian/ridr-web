@@ -20,81 +20,146 @@
         /* Navbar Stili */
         .navbar {
             background-color: #fff;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-            padding: 15px 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            padding: 12px 0;
             position: sticky;
             top: 0;
             z-index: 1000;
         }
 
         .navbar-brand {
-            font-weight: 700;
-            font-size: 24px;
-            color: #6c63ff;
+            font-weight: 600;
+            font-size: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .navbar-brand img {
-            height: 35px;
-            margin-right: 10px;
+            height: 28px;
+        }
+
+        .navbar-nav {
+            gap: 8px;
         }
 
         .navbar-nav .nav-link {
             font-weight: 500;
-            color: #2c3e50;
-            padding: 10px 15px;
-            transition: all 0.3s;
+            color: #64748b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 14px;
         }
 
         .navbar-nav .nav-link:hover,
         .navbar-nav .nav-link.active {
             color: #6c63ff;
+            background-color: rgba(108, 99, 255, 0.05);
         }
 
         .navbar-nav .nav-link i {
-            margin-right: 5px;
+            margin-right: 6px;
+            font-size: 13px;
+        }
+
+        .btn-outline-danger {
+            color: #ef4444;
+            border-color: #ef4444;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-danger:hover {
+            background-color: #ef4444;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-danger i {
+            margin-right: 6px;
+            font-size: 13px;
+        }
+
+        /* Mobil Görünüm */
+        @media (max-width: 991.98px) {
+            .navbar {
+                padding: 8px 0;
+            }
+
+            .navbar-collapse {
+                background-color: #fff;
+                padding: 16px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                margin-top: 12px;
+            }
+
+            .navbar-nav {
+                gap: 4px;
+            }
+
+            .navbar-nav .nav-link {
+                padding: 12px 16px;
+                border-radius: 8px;
+                margin: 2px 0;
+            }
+
+            .navbar-nav .nav-link:hover,
+            .navbar-nav .nav-link.active {
+                background-color: rgba(108, 99, 255, 0.05);
+            }
+
+            .d-flex {
+                margin-top: 12px;
+                padding-top: 12px;
+                border-top: 1px solid rgba(0, 0, 0, 0.05);
+            }
+
+            .btn-outline-danger {
+                width: 100%;
+                text-align: center;
+                padding: 12px 16px;
+            }
         }
 
         /* Menajer Profil Kartı */
         .profile-card {
-            background: linear-gradient(135deg, #6c63ff 0%, #4a44e0 100%);
-            color: white;
-            border-radius: 15px;
-            padding: 30px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 20px rgba(108, 99, 255, 0.2);
-            position: relative;
-            overflow: hidden;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            border: 1px solid rgba(0, 0, 0, 0.04);
+            transition: all 0.3s ease;
         }
 
-        .profile-card::before {
-            content: "";
-            position: absolute;
-            top: -50px;
-            right: -50px;
-            width: 200px;
-            height: 200px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
+        .profile-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         .profile-header {
             display: flex;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
         }
 
         .profile-image {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            border-radius: 16px;
             overflow: hidden;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             margin-right: 20px;
-            background-color: #fff;
+            background-color: #f8f9fa;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
         }
 
         .profile-image img {
@@ -104,50 +169,55 @@
         }
 
         .profile-image .placeholder {
-            font-size: 40px;
+            font-size: 32px;
             color: #6c63ff;
         }
 
         .profile-info h2 {
-            font-size: 28px;
-            margin-bottom: 5px;
+            font-size: 20px;
             font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            line-height: 1.4;
         }
 
         .profile-info .company {
-            font-size: 16px;
-            opacity: 0.9;
-            margin-bottom: 5px;
-            font-weight: 300;
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 4px;
+            font-weight: 500;
         }
 
         .profile-info .email {
-            font-size: 14px;
-            opacity: 0.7;
-            font-weight: 300;
+            font-size: 13px;
+            color: #94a3b8;
+            font-weight: 400;
         }
 
         .profile-stats {
             display: flex;
             justify-content: space-between;
-            margin-top: 20px;
+            margin-top: 24px;
             padding-top: 20px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top: 1px solid rgba(0, 0, 0, 0.04);
         }
 
         .stat {
             text-align: center;
+            flex: 1;
         }
 
         .stat-value {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
         }
 
         .stat-label {
-            font-size: 14px;
-            opacity: 0.8;
-            font-weight: 300;
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
         }
 
         /* Dashboard Kartlar */
@@ -341,34 +411,6 @@
             color: #6c63ff;
         }
 
-        /* Duyurular */
-        .announcement {
-            padding: 12px 0;
-            border-bottom: 1px solid #f1f1f1;
-        }
-
-        .announcement:last-child {
-            border-bottom: none;
-        }
-
-        .announcement-title {
-            font-size: 15px;
-            font-weight: 500;
-            margin-bottom: 5px;
-        }
-
-        .announcement-date {
-            font-size: 12px;
-            color: #95a5a6;
-            margin-bottom: 5px;
-        }
-
-        .announcement-text {
-            font-size: 14px;
-            color: #7f8c8d;
-            line-height: 1.5;
-        }
-
         /* Alt menü */
         .footer {
             margin-top: 40px;
@@ -425,8 +467,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('subscriptions.index') }}">
-                            <i class="fas fa-credit-card"></i> Abonelikler
+                        <a class="nav-link" href="{{ route('invoices.index') }}">
+                            <i class="fas fa-file-invoice"></i> Faturalar
                         </a>
                     </li>
                 </ul>
@@ -488,8 +530,8 @@
                             <div class="stat-label">Sanatçı</div>
                         </div>
                         <div class="stat">
-                            <div class="stat-value" id="event-count">0</div>
-                            <div class="stat-label">Etkinlik</div>
+                            <div class="stat-value" id="monthly-revenue">₺0</div>
+                            <div class="stat-label">Aylık Abonelik</div>
                         </div>
                     </div>
                 </div>
@@ -513,34 +555,6 @@
                                     <span class="visually-hidden">Yükleniyor...</span>
                                 </div>
                                 <p class="mt-2 text-muted">Sanatçılar yükleniyor...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Duyurular -->
-            <div class="col-md-4 col-12 order-3 mb-4">
-                <div class="dashboard-card blue">
-                    <div class="card-header">
-                        <h5>RIDR Duyuruları</h5>
-                        <div class="card-icon blue">
-                            <i class="fas fa-bullhorn"></i>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="announcement">
-                            <div class="announcement-title">Yeni Mobil Uygulama Çıktı!</div>
-                            <div class="announcement-date">15 Nisan 2024</div>
-                            <div class="announcement-text">
-                                RIDR mobil uygulamasının yeni sürümü yayınlandı.
-                            </div>
-                        </div>
-                        <div class="announcement">
-                            <div class="announcement-title">Abonelik Planlarında İndirim</div>
-                            <div class="announcement-date">10 Nisan 2024</div>
-                            <div class="announcement-text">
-                                Seçkin ve Sınırsız abonelik planlarında %15 indirim başladı.
                             </div>
                         </div>
                     </div>
@@ -584,6 +598,21 @@
                 
                 // İstatistikleri güncelle
                 document.getElementById('artist-count').textContent = data.length;
+                
+                // Aylık toplam abonelik tutarını hesapla
+                let totalMonthlyRevenue = 0;
+                data.forEach(artist => {
+                    if (artist.plan && artist.plan.monthly_price) {
+                        totalMonthlyRevenue += parseFloat(artist.plan.monthly_price);
+                    }
+                });
+                
+                // Aylık toplam abonelik tutarını formatla ve göster
+                document.getElementById('monthly-revenue').textContent = 
+                    '₺' + totalMonthlyRevenue.toLocaleString('tr-TR', {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 0
+                    });
                 
                 // Sanatçıları listele
                 const artistContainer = document.getElementById('artists-list');
@@ -658,9 +687,6 @@
                     </div>
                 `;
             });
-
-            // Örnek istatistikler
-            document.getElementById('event-count').textContent = '0';
         });
     </script>
 </body>

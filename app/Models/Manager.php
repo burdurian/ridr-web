@@ -25,6 +25,10 @@ class Manager extends Model
         'company_logo',
         'company',
         'manager_pass',
+        'manager_tax_kimlikno',
+        'company_tax_number',
+        'company_tax_office',
+        'company_legal_name',
     ];
 
     /**

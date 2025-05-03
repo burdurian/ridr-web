@@ -59,6 +59,8 @@ Route::middleware([ManagerAuth::class])->group(function () {
     Route::get('/subscriptions/{id}/cancel', [SubscriptionController::class, 'cancel'])->name('subscriptions.cancel');
     Route::delete('/subscriptions/{id}', [SubscriptionController::class, 'destroy'])->name('subscriptions.destroy');
 
-    // Sanatçı resmi yükleme
-    Route::post('/artists/upload-image', [ArtistController::class, 'uploadImage'])->name('artists.upload-image');
+    // Faturalar sayfası
+    Route::get('/invoices', function () {
+        return view('invoices.index');
+    })->name('invoices.index');
 });

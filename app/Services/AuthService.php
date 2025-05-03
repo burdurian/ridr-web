@@ -113,46 +113,4 @@ class AuthService
             'company_logo' => $managerData['company_logo'] ?? null,
         ]);
     }
-    
-    /**
-     * ID'ye göre menajer bilgisini getirir
-     */
-    public function getManagerById(string $managerId): array
-    {
-        try {
-            // Supabase'den menajer verisini çek
-            $result = $this->supabaseService->select('managers', [
-                'manager_id' => 'eq.' . $managerId,
-                'select' => 'manager_id,manager_name,manager_surname,manager_email,manager_phone,company,company_logo'
-            ]);
-            
-            if (isset($result['error']) || empty($result)) {
-                Log::error('Menajer ID ile sorgulama hatası: ' . (isset($result['error']) ? $result['error'] : 'Menajer bulunamadı'));
-                return [
-                    'success' => false,
-                    'message' => 'Kullanıcı bulunamadı.'
-                ];
-            }
-            
-            $manager = $result[0] ?? null;
-            
-            if (!$manager) {
-                return [
-                    'success' => false,
-                    'message' => 'Kullanıcı bulunamadı.'
-                ];
-            }
-            
-            return [
-                'success' => true,
-                'manager' => $manager
-            ];
-        } catch (\Exception $e) {
-            Log::error('Menajer sorgulama hatası: ' . $e->getMessage());
-            return [
-                'success' => false,
-                'message' => 'Kullanıcı bilgileri alınırken bir hata oluştu.'
-            ];
-        }
-    }
 } 

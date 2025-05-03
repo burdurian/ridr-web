@@ -33,6 +33,11 @@
             color: #6c63ff;
         }
 
+        .navbar-brand img {
+            height: 35px;
+            margin-right: 10px;
+        }
+
         .navbar-nav .nav-link {
             font-weight: 500;
             color: #2c3e50;
@@ -305,7 +310,9 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">RIDR</a>
+            <a class="navbar-brand" href="{{ route('dashboard') }}">
+                <img src="/ridrlogo.svg" alt="RIDR Logo">
+            </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -427,44 +434,44 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="billing_name" class="form-label">Ad</label>
-                                    <input type="text" class="form-control" id="billing_name" name="billing_name" value="{{ $manager['manager_name'] }}" required>
+                                    <input type="text" class="form-control" id="billing_name" name="billing_name" value="{{ $manager['manager_name'] }}" required disabled>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label for="billing_surname" class="form-label">Soyad</label>
-                                    <input type="text" class="form-control" id="billing_surname" name="billing_surname" value="{{ $manager['manager_surname'] }}" required>
+                                    <input type="text" class="form-control" id="billing_surname" name="billing_surname" value="{{ $manager['manager_surname'] }}" required disabled>
                                 </div>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="billing_email" class="form-label">E-posta</label>
-                                <input type="email" class="form-control" id="billing_email" name="billing_email" value="{{ $manager['manager_email'] ?? '' }}" required>
+                                <input type="email" class="form-control" id="billing_email" name="billing_email" value="{{ $manager['manager_email'] ?? '' }}" required disabled>
                             </div>
                             
                             <div class="mb-3">
                                 <label for="billing_phone" class="form-label">Telefon</label>
-                                <input type="text" class="form-control" id="billing_phone" name="billing_phone" value="{{ $manager['manager_phone'] }}" required>
+                                <input type="text" class="form-control" id="billing_phone" name="billing_phone" value="{{ $manager['manager_phone'] }}" required disabled>
                             </div>
                             
                             <!-- Bireysel fatura için TC Kimlik No alanı -->
                             <div id="personal_billing_fields" class="mb-3">
                                 <label for="billing_identity_number" class="form-label">TC Kimlik Numarası</label>
-                                <input type="text" class="form-control" id="billing_identity_number" name="billing_identity_number" maxlength="11" required>
+                                <input type="text" class="form-control" id="billing_identity_number" name="billing_identity_number" maxlength="11" value="{{ $manager['manager_tax_kimlikno'] ?? '' }}" required>
                             </div>
                             
                             <!-- Kurumsal fatura için vergi bilgileri -->
                             <div id="corporate_billing_fields" class="d-none">
                                 <div class="mb-3">
                                     <label for="billing_company_name" class="form-label">Şirket Adı</label>
-                                    <input type="text" class="form-control" id="billing_company_name" name="billing_company_name">
+                                    <input type="text" class="form-control" id="billing_company_name" name="billing_company_name" value="{{ $manager['company_legal_name'] ?? '' }}">
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
                                         <label for="billing_tax_number" class="form-label">Vergi Numarası</label>
-                                        <input type="text" class="form-control" id="billing_tax_number" name="billing_tax_number">
+                                        <input type="text" class="form-control" id="billing_tax_number" name="billing_tax_number" value="{{ $manager['company_tax_number'] ?? '' }}">
                                     </div>
                                     <div class="col-md-6 mb-3">
                                         <label for="billing_tax_office" class="form-label">Vergi Dairesi</label>
-                                        <input type="text" class="form-control" id="billing_tax_office" name="billing_tax_office">
+                                        <input type="text" class="form-control" id="billing_tax_office" name="billing_tax_office" value="{{ $manager['company_tax_office'] ?? '' }}">
                                     </div>
                                 </div>
                             </div>
@@ -569,6 +576,17 @@
             let value = e.target.value.replace(/\D/g, '');
             if (value.length > 11) value = value.slice(0, 11);
             e.target.value = value;
+        });
+        
+        // Sayfa yüklendiğinde mevcut verilere göre fatura tipini ayarla
+        document.addEventListener('DOMContentLoaded', function() {
+            @if(isset($manager['company_tax_number']) && $manager['company_tax_number'])
+                document.getElementById('billing_type_corporate').checked = true;
+                toggleBillingType('corporate');
+            @elseif(isset($manager['manager_tax_kimlikno']) && $manager['manager_tax_kimlikno'])
+                document.getElementById('billing_type_personal').checked = true;
+                toggleBillingType('personal');
+            @endif
         });
         
         // Fatura tipine göre alanları gizle/göster
