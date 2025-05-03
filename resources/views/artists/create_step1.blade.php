@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>RIDR - Yeni Sanatçı (Aşama 1)</title>
+    <link rel="shortcut icon" href="/ridrfavicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -538,40 +539,40 @@
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light">
-        <div class="container">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <img src="/ridrlogo.svg" alt="RIDR Logo">
+    <nav class="navbar navbar-expand-lg">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/dashboard">
+                <img src="/ridrlogo.svg" alt="Ridr" height="30">
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('dashboard') }}">
+                        <a class="nav-link" href="/dashboard">
                             <i class="fas fa-home"></i> Ana Sayfa
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ route('artists.index') }}">
-                            <i class="fas fa-music"></i> Sanatçılarım
+                        <a class="nav-link active" href="/artists">
+                            <i class="fas fa-users"></i> Sanatçılar
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('subscriptions.index') }}">
-                            <i class="fas fa-credit-card"></i> Abonelikler
+                        <a class="nav-link" href="/invoices">
+                            <i class="fas fa-file-invoice"></i> Faturalar
                         </a>
                     </li>
                 </ul>
-                <div class="d-flex">
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-danger">
-                            <i class="fas fa-sign-out-alt"></i> Çıkış Yap
-                        </button>
-                    </form>
+                <div class="user-menu">
+                    <div class="user-info">
+                        <p class="user-name">{{ Auth::user()->name }}</p>
+                        <p class="user-role">Yönetici</p>
+                    </div>
+                    <div class="user-avatar">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                    </div>
                 </div>
             </div>
         </div>
