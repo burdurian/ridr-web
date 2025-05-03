@@ -441,28 +441,63 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($invoices as $invoice)
                                 <tr>
-                                    <td>{{ $invoice->id }}</td>
-                                    <td>{{ $invoice->artist_name }}</td>
-                                    <td class="invoice-date">{{ $invoice->created_at->format('d.m.Y') }}</td>
-                                    <td class="payment-date">{{ $invoice->payment_date ? \Carbon\Carbon::parse($invoice->payment_date)->format('d.m.Y') : '-' }}</td>
-                                    <td>{{ number_format($invoice->amount, 0, ',', '.') }} ₺</td>
-                                    <td>
-                                        <span class="invoice-status badge {{ $invoice->status === 'paid' ? 'bg-success' : ($invoice->status === 'pending' ? 'bg-warning' : 'bg-danger') }}">
-                                            {{ $invoice->status === 'paid' ? 'Ödendi' : ($invoice->status === 'pending' ? 'Beklemede' : 'Gecikmiş') }}
+                                    <td data-label="Fatura No" class="invoice-number">INV-2024-001</td>
+                                    <td data-label="Sanatçı">Ahmet Yılmaz</td>
+                                    <td data-label="Fatura Tarihi" class="invoice-date">01.05.2024</td>
+                                    <td data-label="Ödeme Tarihi" class="payment-date">15.05.2024</td>
+                                    <td data-label="Tutar" class="invoice-amount">₺1.200,00</td>
+                                    <td data-label="Durum">
+                                        <span class="invoice-status status-paid">
+                                            <i class="fas fa-check-circle"></i>
+                                            Ödendi
                                         </span>
                                     </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary view-invoice" data-invoice-id="{{ $invoice->id }}">
+                                    <td data-label="İşlemler">
+                                        <button class="btn btn-view">
                                             <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-success download-invoice" data-invoice-id="{{ $invoice->id }}">
-                                            <i class="fas fa-download"></i>
+                                            İncele
                                         </button>
                                     </td>
                                 </tr>
-                                @endforeach
+                                <tr>
+                                    <td data-label="Fatura No" class="invoice-number">INV-2024-002</td>
+                                    <td data-label="Sanatçı">Mehmet Demir</td>
+                                    <td data-label="Fatura Tarihi" class="invoice-date">01.05.2024</td>
+                                    <td data-label="Ödeme Tarihi" class="payment-date">-</td>
+                                    <td data-label="Tutar" class="invoice-amount">₺1.200,00</td>
+                                    <td data-label="Durum">
+                                        <span class="invoice-status status-pending">
+                                            <i class="fas fa-clock"></i>
+                                            Beklemede
+                                        </span>
+                                    </td>
+                                    <td data-label="İşlemler">
+                                        <button class="btn btn-view">
+                                            <i class="fas fa-eye"></i>
+                                            İncele
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td data-label="Fatura No" class="invoice-number">INV-2024-003</td>
+                                    <td data-label="Sanatçı">Ayşe Kaya</td>
+                                    <td data-label="Fatura Tarihi" class="invoice-date">01.04.2024</td>
+                                    <td data-label="Ödeme Tarihi" class="payment-date">-</td>
+                                    <td data-label="Tutar" class="invoice-amount">₺1.200,00</td>
+                                    <td data-label="Durum">
+                                        <span class="invoice-status status-overdue">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            Gecikmiş
+                                        </span>
+                                    </td>
+                                    <td data-label="İşlemler">
+                                        <button class="btn btn-view">
+                                            <i class="fas fa-eye"></i>
+                                            İncele
+                                        </button>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>

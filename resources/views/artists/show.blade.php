@@ -5,53 +5,114 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $artist['artist_name'] }} - Ridr</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="shortcut icon" href="/ridrfavicon.ico" type="image/x-icon">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar {
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 0.8rem 1rem;
+        }
+        .navbar-brand {
+            font-weight: 600;
+            color: #6f42c1;
+        }
+        .nav-link {
+            color: #495057;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            color: #6f42c1;
+        }
+        .nav-link.active {
+            color: #6f42c1;
+            background-color: rgba(111, 66, 193, 0.1);
+            border-radius: 8px;
+        }
+        .user-menu {
+            position: relative;
+        }
+        .user-menu .dropdown-toggle::after {
+            display: none;
+        }
+        .user-menu .dropdown-menu {
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            padding: 0.5rem;
+            min-width: 200px;
+        }
+        .user-menu .dropdown-item {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            color: #495057;
+            transition: all 0.3s ease;
+        }
+        .user-menu .dropdown-item:hover {
+            background-color: rgba(111, 66, 193, 0.1);
+            color: #6f42c1;
+        }
+        .user-menu .dropdown-item i {
+            width: 20px;
+            text-align: center;
+            margin-right: 8px;
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #fff;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        .card-body {
+            padding: 20px;
+        }
+        @media (max-width: 768px) {
+            .navbar {
+                padding: 0.5rem;
+            }
+            .nav-link {
+                padding: 0.5rem;
+            }
+            .container {
+                padding: 10px;
+            }
+            .card {
+                margin-bottom: 15px;
+            }
+            .card-header, .card-body {
+                padding: 15px;
+            }
+        }
+        body {
             font-family: 'Poppins', sans-serif;
             background-color: #f8f9fc;
             color: #2c3e50;
-        }
-
-        /* Navbar Stili */
-        .navbar {
-            background-color: #fff;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-            padding: 15px 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .navbar-brand {
-            font-weight: 700;
-            font-size: 24px;
-            color: #6c63ff;
-        }
-
-        .navbar-brand img {
-            height: 35px;
-            margin-right: 10px;
-        }
-
-        .navbar-nav .nav-link {
-            font-weight: 500;
-            color: #2c3e50;
-            padding: 10px 15px;
-            transition: all 0.3s;
-        }
-
-        .navbar-nav .nav-link:hover,
-        .navbar-nav .nav-link.active {
-            color: #6c63ff;
-        }
-
-        .navbar-nav .nav-link i {
-            margin-right: 5px;
         }
 
         /* Ana Kart Stili */
@@ -587,40 +648,36 @@
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light">
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand" href="{{ route('dashboard') }}">
-                <img src="/ridrlogo.svg" alt="RIDR Logo">
+            <a class="navbar-brand" href="/dashboard">
+                <img src="/ridrlogo.svg" alt="Ridr" height="30">
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('dashboard') }}">
-                            <i class="fas fa-home"></i> Ana Sayfa
-                        </a>
+                        <a class="nav-link" href="/dashboard">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="{{ route('artists.index') }}">
-                            <i class="fas fa-music"></i> Sanatçılarım
-                        </a>
+                        <a class="nav-link" href="/artists">Sanatçılar</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('subscriptions.index') }}">
-                            <i class="fas fa-credit-card"></i> Abonelikler
-                        </a>
+                        <a class="nav-link" href="/invoices">Faturalar</a>
                     </li>
                 </ul>
-                <div class="d-flex">
-                    <form action="{{ route('logout') }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn btn-outline-danger">
-                            <i class="fas fa-sign-out-alt"></i> Çıkış Yap
-                        </button>
-                    </form>
+                <div class="user-menu">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=6f42c1&color=fff" alt="User" class="user-avatar">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Profil</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Ayarlar</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt"></i> Çıkış</a></li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -1288,4 +1345,5 @@
         });
     </script>
 </body>
+</html> 
 </html> 
