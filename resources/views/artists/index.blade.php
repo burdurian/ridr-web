@@ -20,38 +20,111 @@
         /* Navbar Stili */
         .navbar {
             background-color: #fff;
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-            padding: 15px 0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            padding: 12px 0;
             position: sticky;
             top: 0;
             z-index: 1000;
         }
 
         .navbar-brand {
-            font-weight: 700;
-            font-size: 24px;
-            color: #6c63ff;
+            font-weight: 600;
+            font-size: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .navbar-brand img {
-            height: 35px;
-            margin-right: 10px;
+            height: 28px;
+        }
+
+        .navbar-nav {
+            gap: 8px;
         }
 
         .navbar-nav .nav-link {
             font-weight: 500;
-            color: #2c3e50;
-            padding: 10px 15px;
-            transition: all 0.3s;
+            color: #64748b;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 14px;
         }
 
         .navbar-nav .nav-link:hover,
         .navbar-nav .nav-link.active {
             color: #6c63ff;
+            background-color: rgba(108, 99, 255, 0.05);
         }
 
         .navbar-nav .nav-link i {
-            margin-right: 5px;
+            margin-right: 6px;
+            font-size: 13px;
+        }
+
+        .btn-outline-danger {
+            color: #ef4444;
+            border-color: #ef4444;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-danger:hover {
+            background-color: #ef4444;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .btn-outline-danger i {
+            margin-right: 6px;
+            font-size: 13px;
+        }
+
+        /* Mobil Görünüm */
+        @media (max-width: 991.98px) {
+            .navbar {
+                padding: 8px 0;
+            }
+
+            .navbar-collapse {
+                background-color: #fff;
+                padding: 16px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                margin-top: 12px;
+            }
+
+            .navbar-nav {
+                gap: 4px;
+            }
+
+            .navbar-nav .nav-link {
+                padding: 12px 16px;
+                border-radius: 8px;
+                margin: 2px 0;
+            }
+
+            .navbar-nav .nav-link:hover,
+            .navbar-nav .nav-link.active {
+                background-color: rgba(108, 99, 255, 0.05);
+            }
+
+            .d-flex {
+                margin-top: 12px;
+                padding-top: 12px;
+                border-top: 1px solid rgba(0, 0, 0, 0.05);
+            }
+
+            .btn-outline-danger {
+                width: 100%;
+                text-align: center;
+                padding: 12px 16px;
+            }
         }
 
         /* Ana İçerik */
@@ -291,8 +364,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('subscriptions.index') }}">
-                            <i class="fas fa-credit-card"></i> Abonelikler
+                        <a class="nav-link" href="{{ route('invoices.index') }}">
+                            <i class="fas fa-file-invoice"></i> Faturalar
                         </a>
                     </li>
                 </ul>

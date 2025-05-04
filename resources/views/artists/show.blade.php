@@ -18,26 +18,94 @@
         }
         .navbar {
             background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 0.8rem 1rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            padding: 12px 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
         .navbar-brand {
             font-weight: 600;
-            color: #6f42c1;
+            font-size: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .nav-link {
-            color: #495057;
+        .navbar-brand img {
+            height: 28px;
+        }
+        .navbar-nav {
+            gap: 8px;
+        }
+        .navbar-nav .nav-link {
             font-weight: 500;
-            padding: 0.5rem 1rem;
-            transition: all 0.3s ease;
-        }
-        .nav-link:hover {
-            color: #6f42c1;
-        }
-        .nav-link.active {
-            color: #6f42c1;
-            background-color: rgba(111, 66, 193, 0.1);
+            color: #64748b;
+            padding: 8px 16px;
             border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        .navbar-nav .nav-link:hover,
+        .navbar-nav .nav-link.active {
+            color: #6c63ff;
+            background-color: rgba(108, 99, 255, 0.05);
+        }
+        .navbar-nav .nav-link i {
+            margin-right: 6px;
+            font-size: 13px;
+        }
+        .btn-outline-danger {
+            color: #ef4444;
+            border-color: #ef4444;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        .btn-outline-danger:hover {
+            background-color: #ef4444;
+            color: white;
+            transform: translateY(-1px);
+        }
+        .btn-outline-danger i {
+            margin-right: 6px;
+            font-size: 13px;
+        }
+        @media (max-width: 991.98px) {
+            .navbar {
+                padding: 8px 0;
+            }
+            .navbar-collapse {
+                background-color: #fff;
+                padding: 16px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+                margin-top: 12px;
+            }
+            .navbar-nav {
+                gap: 4px;
+            }
+            .navbar-nav .nav-link {
+                padding: 12px 16px;
+                border-radius: 8px;
+                margin: 2px 0;
+            }
+            .navbar-nav .nav-link:hover,
+            .navbar-nav .nav-link.active {
+                background-color: rgba(108, 99, 255, 0.05);
+            }
+            .d-flex {
+                margin-top: 12px;
+                padding-top: 12px;
+                border-top: 1px solid rgba(0, 0, 0, 0.05);
+            }
+            .btn-outline-danger {
+                width: 100%;
+                text-align: center;
+                padding: 12px 16px;
+            }
         }
         .user-menu {
             position: relative;
@@ -648,36 +716,39 @@
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg">
+    <nav class="navbar navbar-expand-lg navbar-light">
         <div class="container">
-            <a class="navbar-brand" href="/dashboard">
-                <img src="/ridrlogo.svg" alt="Ridr" height="30">
+            <a class="navbar-brand" href="{{ route('dashboard') }}">
+                <img src="/ridrlogo.svg" alt="RIDR Logo">
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/dashboard">Dashboard</a>
+                        <a class="nav-link" href="{{ route('dashboard') }}">
+                            <i class="fas fa-home"></i> Ana Sayfa
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/artists">Sanatçılar</a>
+                        <a class="nav-link active" href="{{ route('artists.index') }}">
+                            <i class="fas fa-music"></i> Sanatçılarım
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/invoices">Faturalar</a>
+                        <a class="nav-link" href="{{ route('invoices.index') }}">
+                            <i class="fas fa-file-invoice"></i> Faturalar
+                        </a>
                     </li>
                 </ul>
-                <div class="user-menu">
-                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
-                        <img src="https://ui-avatars.com/api/?name=John+Doe&background=6f42c1&color=fff" alt="User" class="user-avatar">
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-user"></i> Profil</a></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog"></i> Ayarlar</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#"><i class="fas fa-sign-out-alt"></i> Çıkış</a></li>
-                    </ul>
+                <div class="d-flex">
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -1190,13 +1261,9 @@
                 .then(response => response.json())
                 .then(data => {
                     addUserBtn.disabled = false;
-                    addUserBtn.innerHTML = '<i class="fas fa-plus me-1"></i> Ekle';
+                    addUserBtn.innerHTML = '<i class="fas fa-plus me-1"></i> Eklendi';
                     
                     if (data.success) {
-                        addUserBtn.innerHTML = '<i class="fas fa-check me-1"></i> Eklendi';
-                        addUserBtn.classList.remove('btn-primary');
-                        addUserBtn.classList.add('btn-success');
-                        
                         setTimeout(() => {
                             window.location.reload();
                         }, 1000);
@@ -1345,5 +1412,4 @@
         });
     </script>
 </body>
-</html> 
 </html> 

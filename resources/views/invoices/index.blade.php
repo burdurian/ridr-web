@@ -378,6 +378,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ route('artists.index') }}">
+                            <i class="fas fa-music"></i> Sanatçılarım
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link active" href="{{ route('invoices.index') }}">
                             <i class="fas fa-file-invoice"></i> Faturalar
                         </a>
