@@ -1,61 +1,142 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# RIDR Web Uygulaması
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+RIDR Web, mobil etkinlik yönetimi uygulaması için web yönetim panelidir. Menajerler bu panel üzerinden sanatçılarını yönetebilir ve abonelik planlarını satın alabilirler.
 
-## About Laravel
+## Proje Yapısı
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Veritabanı Entegrasyonu
+- Supabase veritabanı ile doğrudan entegrasyon
+- `SupabaseService` sınıfı ile REST API üzerinden veri erişimi
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Kimlik Doğrulama
+- Yerel kimlik doğrulama (Supabase Auth kullanmadan)
+- Menajer giriş sistemi (telefon numarası + şifre)
+- SHA-256 ile şifre doğrulama
+- Oturum Yönetimi
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Modeller
+- `Manager`: Menajer bilgileri
+- `Artist`: Sanatçı bilgileri
+- `SubscriptionPlan`: Abonelik planları
 
-## Learning Laravel
+### Servisler
+- `SupabaseService`: Supabase ile iletişim
+- `IyzicoService`: İyzico ile ödeme işlemleri
+- `SubscriptionService`: Abonelik işlemleri
+- `AuthService`: Kimlik doğrulama işlemleri
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Controller'lar
+- `AuthController`: Giriş, çıkış ve kimlik doğrulama
+- `ArtistController`: Sanatçı yönetimi
+- `SubscriptionController`: Abonelik yönetimi
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+### Ana Ekranlar
+- Login Sayfası
+- Dashboard
+- Sanatçı Listeleme
+- Sanatçı Ekleme/Düzenleme
+- Abonelik Planları
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Özellikler
 
-## Laravel Sponsors
+### Menajer Yönetimi
+- Telefon numarası ve parola ile giriş
+- Telefon numarası normalizasyon desteği (+90, 0, 5xx formatları)
+- Şirket ve profil bilgileri görüntüleme
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Sanatçı Yönetimi
+- Sanatçı listeleme, ekleme, düzenleme ve silme
+- Sanatçı detay görüntüleme
+- Sanatçılara özel abonelik planı atama
+- Plan başına maksimum sanatçı sayısı kontrolü
 
-### Premium Partners
+### Abonelik ve Ödeme İşlemleri
+- Abonelik planı seçimi ve görüntüleme
+- İyzico ile ödeme işlemleri
+- Aylık abonelik yönetimi
+- Plan özellikleri görüntüleme
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development/)**
-- **[Active Logic](https://activelogic.com)**
+## Teknolojiler
 
-## Contributing
+- PHP Laravel 10+
+- Supabase Veritabanı
+- İyzico Ödeme Entegrasyonu
+- Bootstrap 5 UI
+- FontAwesome İkonları
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Kurulum
 
-## Code of Conduct
+1. `.env` dosyasında Supabase ve İyzico bilgilerini ayarlayın
+```
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_KEY=your-key
+SUPABASE_SECRET=your-secret
+SUPABASE_JWT_SECRET=your-jwt-secret
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+IYZICO_API_KEY=your-api-key
+IYZICO_SECRET_KEY=your-secret-key
+IYZICO_BASE_URL=https://sandbox-api.iyzipay.com
+IYZICO_SANDBOX=true
+```
 
-## Security Vulnerabilities
+2. Bağımlılıkları yükleyin
+```
+composer install
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+3. Uygulama anahtarını oluşturun
+```
+php artisan key:generate
+```
 
-## License
+4. Gerekli tabloları oluşturun
+```
+php artisan migrate
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+5. Uygulamayı başlatın
+```
+php artisan serve
+```
+
+## Veritabanı Yapısı
+
+Projede Supabase veritabanı kullanılmaktadır ve aşağıdaki tablolarla çalışılmaktadır:
+
+### managers
+- manager_id (uuid)
+- manager_email (text)
+- manager_phone (text) (+90 ile başlayan)
+- manager_name (varchar)
+- manager_surname (varchar)
+- company_logo (varchar)
+- company (varchar)
+- manager_pass (text) (SHA-256 ile şifrelenmiş)
+
+### artists
+- artist_id (uuid)
+- artist_name (varchar)
+- related_manager (uuid) (managers tablosu ile ilişkili)
+- artist_image (varchar)
+- genre (varchar)
+- artist_slug (varchar)
+- subscription_plan (uuid) (subscription_plans tablosu ile ilişkili)
+
+### subscription_plans
+- plan_id (uuid)
+- plan_name (text)
+- max_members (numeric)
+- monthly_price (numeric)
+- price_currency (text)
+- plan_desc (text)
+- plan_features (jsonb) (özellik listesi)
+
+## Giriş İşlemi
+
+Kullanıcılar telefon numarası ve parola ile giriş yapabilirler. Telefon numarası çeşitli formatlarda girilebilir:
+- +90 5XX XXX XX XX
+- 90 5XX XXX XX XX
+- 0 5XX XXX XX XX
+- 5XX XXX XX XX
+
+Parolalar SHA-256 algoritması ile şifrelenmektedir.
