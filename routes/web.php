@@ -48,7 +48,12 @@ Route::middleware([ManagerAuth::class])->group(function () {
     Route::get('/artists/create/step1', [ArtistController::class, 'createStep1'])->name('artists.create.step1');
     Route::post('/artists/create/process-step1', [ArtistController::class, 'processStep1'])->name('artists.process.step1');
     Route::get('/artists/create/step2/{plan_id}', [ArtistController::class, 'createStep2'])->name('artists.create.step2');
-    Route::get('/artists/payment/success/{id}', [ArtistController::class, 'paymentSuccess'])->name('artists.payment.success');
+    Route::get('/artists/create/success/{id}', [ArtistController::class, 'paymentSuccess'])->name('artists.create.success');
+    
+    // Eski route'u yeni route'a yönlendir (geriye dönük uyumluluk için)
+    Route::get('/artists/payment/success/{id}', function($id) {
+        return redirect()->route('artists.create.success', ['id' => $id]);
+    });
 
     // Abonelik rotaları
     Route::get('/subscriptions', [SubscriptionController::class, 'index'])->name('subscriptions.index');

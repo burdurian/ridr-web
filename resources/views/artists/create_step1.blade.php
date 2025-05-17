@@ -577,7 +577,7 @@
         }
         
         .genre-dropdown.show {
-            display: block;
+            display: block !important;
         }
         
         .genre-option {
@@ -633,6 +633,7 @@
             <a class="navbar-brand" href="{{ route('dashboard') }}">
                 <img src="/ridrlogo.svg" alt="RIDR Logo">
             </a>
+            @if(!isset($reviewMode) || $reviewMode == false)
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -663,6 +664,16 @@
                     </form>
                 </div>
             </div>
+            @else
+            <div class="ms-auto">
+                <form action="{{ route('logout') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                    </button>
+                </form>
+            </div>
+            @endif
         </div>
     </nav>
 
@@ -681,6 +692,7 @@
                     <div class="step-number">1</div>
                     <div class="step-title">Sanatçı Bilgileri</div>
                 </div>
+                @if(!isset($reviewMode) || $reviewMode == false)
                 <div class="step">
                     <div class="step-number">2</div>
                     <div class="step-title">Ödeme</div>
@@ -689,6 +701,12 @@
                     <div class="step-number">3</div>
                     <div class="step-title">Tamamlandı</div>
                 </div>
+                @else
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Tamamlandı</div>
+                </div>
+                @endif
             </div>
 
             @if(session('error'))
@@ -744,6 +762,7 @@
                     </div>
                 </div>
                 
+                @if(!isset($reviewMode) || $reviewMode == false)
                 <!-- Abonelik Planı -->
                 <div class="form-section">
                     <h3 class="form-section-title">Abonelik Planı</h3>
@@ -899,26 +918,37 @@
                                                 }
                                             @endphp
                                             
-                                            @foreach($featureOrder as $key)
-                                                @if(isset($features[$key]) && isset($featuresMapping[$key]))
-                                                    <li class="{{ $features[$key] === 'yes' ? 'feature-yes' : 'feature-no' }}">
-                                                        {{ $featuresMapping[$key] }}
-                                                    </li>
-                                                @endif
-                                            @endforeach
+                                            @if(is_array($features))
+                                                @foreach($featureOrder as $featureKey)
+                                                    @if(isset($features[$featureKey]) && $features[$featureKey])
+                                                        <li class="available">
+                                                            <i class="fas fa-check"></i> 
+                                                            {{ $featuresMapping[$featureKey] ?? $featureKey }}
+                                                        </li>
+                                                    @endif
+                                                @endforeach
+                                            @endif
                                         @endif
                                     </ul>
-                                    <input type="radio" name="subscription_plan" value="{{ $plan['plan_id'] }}" {{ old('subscription_plan') == $plan['plan_id'] ? 'checked' : '' }} class="d-none plan-radio" id="plan-radio-{{ $plan['plan_id'] }}">
+                                    
+                                    <input type="radio" name="subscription_plan" value="{{ $plan['plan_id'] }}" class="d-none plan-radio" {{ old('subscription_plan') == $plan['plan_id'] ? 'checked' : '' }}>
                                 </div>
                             </div>
                         @endforeach
                     </div>
                 </div>
+                @endif
                 
-                <!-- Aksiyon Butonları -->
-                <div class="action-buttons d-flex justify-content-between">
-                    <a href="{{ route('artists.index') }}" class="btn btn-outline-secondary">İptal</a>
-                    <button type="submit" class="btn btn-primary">Devam Et <i class="fas fa-arrow-right ms-1"></i></button>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                    @if(isset($reviewMode) && $reviewMode == true)
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-check me-1"></i> Sanatçı Oluştur
+                    </button>
+                    @else
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-arrow-right me-1"></i> Devam Et
+                    </button>
+                    @endif
                 </div>
             </form>
         </div>
@@ -947,7 +977,10 @@
                     
                     // Radio butonu işaretle
                     const planId = this.getAttribute('data-plan');
-                    document.getElementById('plan-radio-' + planId).checked = true;
+                    const radioInput = document.querySelector(`input[value="${planId}"]`);
+                    if (radioInput) {
+                        radioInput.checked = true;
+                    }
                 });
             });
             
@@ -963,131 +996,139 @@
             // Aylık/Yıllık Toggle İşlevselliği
             const monthlyBtn = document.getElementById('monthly-btn');
             const annualBtn = document.getElementById('annual-btn');
-            const monthlyPrices = document.querySelectorAll('.monthly-plan');
-            const annualPrices = document.querySelectorAll('.price-annual');
-            
-            monthlyBtn.addEventListener('click', function() {
-                monthlyBtn.classList.add('active');
-                annualBtn.classList.remove('active');
+            if (monthlyBtn && annualBtn) {
+                const monthlyPrices = document.querySelectorAll('.monthly-plan');
+                const annualPrices = document.querySelectorAll('.price-annual');
                 
-                monthlyPrices.forEach(price => price.style.display = 'block');
-                annualPrices.forEach(price => price.style.display = 'none');
-            });
-            
-            annualBtn.addEventListener('click', function() {
-                annualBtn.classList.add('active');
-                monthlyBtn.classList.remove('active');
+                monthlyBtn.addEventListener('click', function() {
+                    monthlyBtn.classList.add('active');
+                    annualBtn.classList.remove('active');
+                    
+                    monthlyPrices.forEach(price => price.style.display = 'block');
+                    annualPrices.forEach(price => price.style.display = 'none');
+                });
                 
-                monthlyPrices.forEach(price => price.style.display = 'none');
-                annualPrices.forEach(price => price.style.display = 'block');
-            });
+                annualBtn.addEventListener('click', function() {
+                    annualBtn.classList.add('active');
+                    monthlyBtn.classList.remove('active');
+                    
+                    monthlyPrices.forEach(price => price.style.display = 'none');
+                    annualPrices.forEach(price => price.style.display = 'block');
+                });
+            }
 
             // Müzik Türü Çoklu Seçim İşlevselliği
             const genreSelector = document.getElementById('genre-selector');
             const genreDropdown = document.getElementById('genre-dropdown');
             const genreInput = document.getElementById('genre-input');
-            const genrePlaceholder = document.querySelector('.genre-placeholder');
-            const genreOptions = document.querySelectorAll('.genre-option');
             
-            let selectedGenres = [];
-            
-            // Sayfa yüklendiğinde önceden seçilmiş türleri göster
-            if (genreInput.value) {
-                selectedGenres = genreInput.value.split(',');
-                updateGenreDisplay();
-            }
-            
-            // Seçici tıklandığında dropdown'ı göster/gizle
-            genreSelector.addEventListener('click', function(e) {
-                e.stopPropagation();
-                genreDropdown.classList.toggle('show');
-                genreSelector.classList.toggle('active');
-            });
-            
-            // Enter veya space tuşuna basıldığında dropdown'ı göster/gizle
-            genreSelector.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
+            if (genreSelector && genreDropdown && genreInput) {
+                const genreOptions = document.querySelectorAll('.genre-option');
+                let selectedGenres = [];
+                
+                // Sayfa yüklendiğinde önceden seçilmiş türleri göster
+                if (genreInput.value) {
+                    selectedGenres = genreInput.value.split(',');
+                    updateGenreDisplay();
+                }
+                
+                // Seçici tıklandığında dropdown'ı göster/gizle
+                genreSelector.addEventListener('click', function(e) {
+                    e.stopPropagation();
                     genreDropdown.classList.toggle('show');
                     genreSelector.classList.toggle('active');
-                }
-            });
-            
-            // Bir tür seçildiğinde
-            genreOptions.forEach(option => {
-                option.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    const genreValue = this.getAttribute('data-value');
-                    
-                    // Eğer zaten seçiliyse, seçimi kaldır
-                    if (selectedGenres.includes(genreValue)) {
-                        selectedGenres = selectedGenres.filter(g => g !== genreValue);
-                        this.classList.remove('selected');
-                    } else {
-                        // Değilse, seçimi ekle
-                        selectedGenres.push(genreValue);
-                        this.classList.add('selected');
+                    console.log('Genre selector clicked', genreDropdown.classList.contains('show'));
+                });
+                
+                // Enter veya space tuşuna basıldığında dropdown'ı göster/gizle
+                genreSelector.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        genreDropdown.classList.toggle('show');
+                        genreSelector.classList.toggle('active');
+                    }
+                });
+                
+                // Bir tür seçildiğinde
+                genreOptions.forEach(option => {
+                    option.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        const genreValue = this.getAttribute('data-value');
+                        console.log('Genre option clicked', genreValue);
+                        
+                        // Eğer zaten seçiliyse, seçimi kaldır
+                        if (selectedGenres.includes(genreValue)) {
+                            selectedGenres = selectedGenres.filter(g => g !== genreValue);
+                            this.classList.remove('selected');
+                        } else {
+                            // Değilse, seçimi ekle
+                            selectedGenres.push(genreValue);
+                            this.classList.add('selected');
+                        }
+                        
+                        // Input değerini ve gösterimi güncelle
+                        genreInput.value = selectedGenres.join(',');
+                        updateGenreDisplay();
+                    });
+                });
+                
+                // Dışarı tıklandığında dropdown'ı kapat
+                document.addEventListener('click', function(e) {
+                    if (!genreSelector.contains(e.target) && !genreDropdown.contains(e.target)) {
+                        genreDropdown.classList.remove('show');
+                        genreSelector.classList.remove('active');
+                    }
+                });
+                
+                // Seçili türleri göster
+                function updateGenreDisplay() {
+                    // Placeholder'ı temizle
+                    while (genreSelector.firstChild) {
+                        genreSelector.removeChild(genreSelector.firstChild);
                     }
                     
-                    // Input değerini ve gösterimi güncelle
-                    genreInput.value = selectedGenres.join(',');
-                    updateGenreDisplay();
-                });
-            });
-            
-            // Dışarı tıklandığında dropdown'ı kapat
-            document.addEventListener('click', function(e) {
-                if (!genreSelector.contains(e.target) && !genreDropdown.contains(e.target)) {
-                    genreDropdown.classList.remove('show');
-                    genreSelector.classList.remove('active');
-                }
-            });
-            
-            // Seçili türleri göster
-            function updateGenreDisplay() {
-                // Placeholder'ı temizle
-                while (genreSelector.firstChild) {
-                    genreSelector.removeChild(genreSelector.firstChild);
-                }
-                
-                // Eğer seçili tür yoksa placeholder göster
-                if (selectedGenres.length === 0) {
-                    const placeholder = document.createElement('span');
-                    placeholder.className = 'genre-placeholder';
-                    placeholder.textContent = 'Müzik türlerini seçin...';
-                    genreSelector.appendChild(placeholder);
-                } else {
-                    // Seçili türleri chip olarak göster
-                    selectedGenres.forEach(genre => {
-                        const chip = document.createElement('div');
-                        chip.className = 'genre-chip';
-                        chip.innerHTML = genre + '<span class="close">&times;</span>';
-                        
-                        // Chip'teki çarpıya tıklayınca türü kaldır
-                        chip.querySelector('.close').addEventListener('click', function(e) {
-                            e.stopPropagation();
-                            selectedGenres = selectedGenres.filter(g => g !== genre);
-                            genreInput.value = selectedGenres.join(',');
+                    // Eğer seçili tür yoksa placeholder göster
+                    if (selectedGenres.length === 0) {
+                        const placeholder = document.createElement('span');
+                        placeholder.className = 'genre-placeholder';
+                        placeholder.textContent = 'Müzik türlerini seçin...';
+                        genreSelector.appendChild(placeholder);
+                    } else {
+                        // Seçili türleri chip olarak göster
+                        selectedGenres.forEach(genre => {
+                            const chip = document.createElement('div');
+                            chip.className = 'genre-chip';
+                            chip.innerHTML = genre + '<span class="close">&times;</span>';
                             
-                            // İlgili option'ın seçimini kaldır
-                            document.querySelector(`.genre-option[data-value="${genre}"]`).classList.remove('selected');
+                            // Chip'teki çarpıya tıklayınca türü kaldır
+                            chip.querySelector('.close').addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                selectedGenres = selectedGenres.filter(g => g !== genre);
+                                genreInput.value = selectedGenres.join(',');
+                                
+                                // İlgili option'ın seçimini kaldır
+                                const optionEl = document.querySelector(`.genre-option[data-value="${genre}"]`);
+                                if (optionEl) {
+                                    optionEl.classList.remove('selected');
+                                }
+                                
+                                updateGenreDisplay();
+                            });
                             
-                            updateGenreDisplay();
+                            genreSelector.appendChild(chip);
                         });
-                        
-                        genreSelector.appendChild(chip);
+                    }
+                    
+                    // Option'ların seçili durumunu güncelle
+                    genreOptions.forEach(option => {
+                        const value = option.getAttribute('data-value');
+                        if (selectedGenres.includes(value)) {
+                            option.classList.add('selected');
+                        } else {
+                            option.classList.remove('selected');
+                        }
                     });
                 }
-                
-                // Option'ların seçili durumunu güncelle
-                genreOptions.forEach(option => {
-                    const value = option.getAttribute('data-value');
-                    if (selectedGenres.includes(value)) {
-                        option.classList.add('selected');
-                    } else {
-                        option.classList.remove('selected');
-                    }
-                });
             }
         });
     </script>

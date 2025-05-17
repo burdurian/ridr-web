@@ -240,6 +240,7 @@
             <a class="navbar-brand" href="{{ route('dashboard') }}">
                 <img src="/ridrlogo.svg" alt="RIDR Logo">
             </a>
+            @if(!isset($reviewMode) || $reviewMode == false)
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -256,8 +257,8 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ route('subscriptions.index') }}">
-                            <i class="fas fa-credit-card"></i> Abonelikler
+                        <a class="nav-link" href="{{ route('invoices.index') }}">
+                            <i class="fas fa-file-invoice"></i> Faturalar
                         </a>
                     </li>
                 </ul>
@@ -270,6 +271,16 @@
                     </form>
                 </div>
             </div>
+            @else
+            <div class="ms-auto">
+                <form action="{{ route('logout') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                    </button>
+                </form>
+            </div>
+            @endif
         </div>
     </nav>
 

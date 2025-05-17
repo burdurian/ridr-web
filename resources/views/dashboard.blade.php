@@ -456,6 +456,7 @@
             <a class="navbar-brand" href="{{ route('dashboard') }}">
                 <img src="/ridrlogo.svg" alt="RIDR Logo">
             </a>
+            @if(!isset($reviewMode) || $reviewMode == false)
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -481,6 +482,16 @@
                     </form>
                 </div>
             </div>
+            @else
+            <div class="ms-auto">
+                <form action="{{ route('logout') }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+                    </button>
+                </form>
+            </div>
+            @endif
         </div>
     </nav>
 
@@ -529,10 +540,12 @@
                             <div class="stat-value" id="artist-count">0</div>
                             <div class="stat-label">Sanatçı</div>
                         </div>
+                        @if(!isset($reviewMode) || $reviewMode == false)
                         <div class="stat">
                             <div class="stat-value" id="monthly-revenue">₺0</div>
                             <div class="stat-label">Aylık Abonelik</div>
                         </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -601,6 +614,7 @@
                 
                 // Aylık toplam abonelik tutarını hesapla
                 let totalMonthlyRevenue = 0;
+                @if(!isset($reviewMode) || $reviewMode == false)
                 data.forEach(artist => {
                     if (artist.plan && artist.plan.monthly_price) {
                         totalMonthlyRevenue += parseFloat(artist.plan.monthly_price);
@@ -613,6 +627,7 @@
                         minimumFractionDigits: 0,
                         maximumFractionDigits: 0
                     });
+                @endif
                 
                 // Sanatçıları listele
                 const artistContainer = document.getElementById('artists-list');

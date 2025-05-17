@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\SupabaseService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Config;
 
 class DashboardController extends Controller
 {
@@ -20,7 +21,8 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        return view('dashboard');
+        $reviewMode = Config::get('review_mode.enabled', false);
+        return view('dashboard', compact('reviewMode'));
     }
 
     /**

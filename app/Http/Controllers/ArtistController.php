@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Config;
 
 class ArtistController extends Controller
 {
@@ -49,7 +50,10 @@ class ArtistController extends Controller
             $plans = $result;
         }
         
-        return view('artists.create_step1', compact('plans'));
+        // İnceleme modu aktif mi kontrol et
+        $reviewMode = Config::get('review_mode.enabled', false);
+        
+        return view('artists.create_step1', compact('plans', 'reviewMode'));
     }
 
     /**
@@ -60,7 +64,7 @@ class ArtistController extends Controller
         $validator = Validator::make($request->all(), [
             'artist_name' => 'required|string|max:255',
             'genre' => 'required|string|max:100',
-            'subscription_plan' => 'required|string',
+            'subscription_plan' => 'nullable|string',
             'artist_image' => 'nullable|url|max:255',
         ]);
 
@@ -72,31 +76,37 @@ class ArtistController extends Controller
         
         $manager = Session::get('manager');
         
-        // Plan limitini kontrol et
-        $planResult = $this->supabaseService->select('subscription_plans', [
-            'plan_id' => 'eq.' . $request->input('subscription_plan'),
-            'select' => 'plan_id,plan_name,max_members,monthly_price,annual_price,price_currency,plan_desc,plan_features'
-        ]);
+        // İnceleme modu aktif mi kontrol et
+        $reviewMode = Config::get('review_mode.enabled', false);
         
-        if (isset($planResult['error']) || empty($planResult)) {
-            return redirect()->back()
-                ->with('error', 'Geçersiz abonelik planı seçildi.')
-                ->withInput();
-        }
-        
-        $plan = $planResult[0];
-        
-        // Bu plan için mevcut sanatçı sayısını kontrol et
-        $artistsResult = $this->supabaseService->select('artists', [
-            'related_manager' => 'eq.' . $manager['manager_id'],
-            'subscription_plan' => 'eq.' . $plan['plan_id'],
-            'select' => 'count'
-        ]);
-        
-        if (!isset($artistsResult['error']) && count($artistsResult) >= $plan['max_members']) {
-            return redirect()->back()
-                ->with('error', 'Bu plan için maksimum sanatçı sayısına ulaştınız. Lütfen planınızı yükseltin veya başka bir plan seçin.')
-                ->withInput();
+        // İnceleme modunda ise, plan kontrolü yapmadan devam et
+        if (!$reviewMode) {
+            // Plan limitini kontrol et
+            $planResult = $this->supabaseService->select('subscription_plans', [
+                'plan_id' => 'eq.' . $request->input('subscription_plan'),
+                'select' => 'plan_id,plan_name,max_members,monthly_price,annual_price,price_currency,plan_desc,plan_features'
+            ]);
+            
+            if (isset($planResult['error']) || empty($planResult)) {
+                return redirect()->back()
+                    ->with('error', 'Geçersiz abonelik planı seçildi.')
+                    ->withInput();
+            }
+            
+            $plan = $planResult[0];
+            
+            // Bu plan için mevcut sanatçı sayısını kontrol et
+            $artistsResult = $this->supabaseService->select('artists', [
+                'related_manager' => 'eq.' . $manager['manager_id'],
+                'subscription_plan' => 'eq.' . $plan['plan_id'],
+                'select' => 'count'
+            ]);
+            
+            if (!isset($artistsResult['error']) && count($artistsResult) >= $plan['max_members']) {
+                return redirect()->back()
+                    ->with('error', 'Bu plan için maksimum sanatçı sayısına ulaştınız. Lütfen planınızı yükseltin veya başka bir plan seçin.')
+                    ->withInput();
+            }
         }
         
         // Sanatçı slug oluştur
@@ -124,12 +134,41 @@ class ArtistController extends Controller
             'genre' => $request->input('genre'),
             'artist_image' => $request->input('artist_image', ''),
             'artist_slug' => $slug,
-            'subscription_plan' => $request->input('subscription_plan'),
         ];
         
-        Session::put('artist_creation_data', $artistData);
-        
-        return redirect()->route('artists.create.step2', ['plan_id' => $plan['plan_id']]);
+        // İnceleme modunda değilse subscription_plan ekle
+        if (!$reviewMode) {
+            $artistData['subscription_plan'] = $request->input('subscription_plan');
+            Session::put('artist_creation_data', $artistData);
+            return redirect()->route('artists.create.step2', ['plan_id' => $plan['plan_id']]);
+        } else {
+            // İnceleme modunda ise direkt kaydet
+            $artistData['related_manager'] = $manager['manager_id'];
+            // Varsayılan bir plan seç (sonra değiştirilebilir)
+            $defaultPlan = $this->supabaseService->select('subscription_plans', [
+                'select' => 'plan_id',
+                'limit' => 1
+            ]);
+            
+            if (!isset($defaultPlan['error']) && !empty($defaultPlan)) {
+                $artistData['subscription_plan'] = $defaultPlan[0]['plan_id'];
+            }
+            
+            // Veritabanına yeni sanatçıyı ekle
+            $result = $this->supabaseService->insert('artists', $artistData);
+            
+            if (isset($result['error'])) {
+                return redirect()->back()
+                    ->with('error', 'Sanatçı oluşturulurken bir hata oluştu: ' . $result['error']);
+            }
+            
+            // Oluşturulan sanatçı bilgilerini al
+            $createdArtist = $result[0] ?? null;
+            
+            // Başarı sayfasına yönlendir
+            return redirect()->route('artists.create.success', ['id' => $createdArtist['artist_id']])
+                ->with('reviewMode', true);
+        }
     }
 
     /**
@@ -243,7 +282,7 @@ class ArtistController extends Controller
         Session::forget('artist_creation_data');
         
         // Başarı sayfasına yönlendir
-        return redirect()->route('artists.payment.success', ['id' => $createdArtist['artist_id']])
+        return redirect()->route('artists.create.success', ['id' => $createdArtist['artist_id']])
             ->with('plan', $planInfo);
     }
 
@@ -268,10 +307,16 @@ class ArtistController extends Controller
         
         $artist = $result[0];
         
+        // İnceleme modu aktif mi kontrol et
+        $reviewMode = Config::get('review_mode.enabled', false);
+        if (Session::has('reviewMode')) {
+            $reviewMode = Session::get('reviewMode');
+        }
+        
         // Abonelik planı bilgilerini çek (eğer session'da yoksa)
         $plan = Session::get('plan');
         
-        if (!$plan) {
+        if (!$plan && !$reviewMode) {
             $planResult = $this->supabaseService->select('subscription_plans', [
                 'plan_id' => 'eq.' . $artist['subscription_plan'],
                 'select' => 'plan_id,plan_name,monthly_price,price_currency'
@@ -282,7 +327,7 @@ class ArtistController extends Controller
             }
         }
         
-        return view('artists.payment_success', compact('artist', 'plan'));
+        return view('artists.create_success', compact('artist', 'plan', 'reviewMode'));
     }
 
     /**
@@ -308,15 +353,20 @@ class ArtistController extends Controller
         // Sanatçı ID'sini logla
         \Log::info('Sanatçı ID değeri:', ['artist_id' => $artist['artist_id']]);
         
-        // Abonelik planı bilgilerini çek
-        $planResult = $this->supabaseService->select('subscription_plans', [
-            'plan_id' => 'eq.' . $artist['subscription_plan'],
-            'select' => '*'
-        ]);
+        // İnceleme modu aktif mi kontrol et
+        $reviewMode = Config::get('review_mode.enabled', false);
         
         $plan = null;
-        if (!isset($planResult['error']) && !empty($planResult)) {
-            $plan = $planResult[0];
+        if (!$reviewMode) {
+            // Abonelik planı bilgilerini çek
+            $planResult = $this->supabaseService->select('subscription_plans', [
+                'plan_id' => 'eq.' . $artist['subscription_plan'],
+                'select' => '*'
+            ]);
+            
+            if (!isset($planResult['error']) && !empty($planResult)) {
+                $plan = $planResult[0];
+            }
         }
         
         // Ekip üyelerini çek
@@ -356,7 +406,7 @@ class ArtistController extends Controller
             $events = [];
         }
         
-        return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
+        return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events', 'reviewMode'));
     }
 
     /**
@@ -382,15 +432,20 @@ class ArtistController extends Controller
         // Sanatçı ID'sini logla
         \Log::info('Sanatçı ID değeri:', ['artist_id' => $artist['artist_id']]);
         
-        // Abonelik planı bilgilerini çek
-        $planResult = $this->supabaseService->select('subscription_plans', [
-            'plan_id' => 'eq.' . $artist['subscription_plan'],
-            'select' => '*'
-        ]);
+        // İnceleme modu aktif mi kontrol et
+        $reviewMode = Config::get('review_mode.enabled', false);
         
         $plan = null;
-        if (!isset($planResult['error']) && !empty($planResult)) {
-            $plan = $planResult[0];
+        if (!$reviewMode) {
+            // Abonelik planı bilgilerini çek
+            $planResult = $this->supabaseService->select('subscription_plans', [
+                'plan_id' => 'eq.' . $artist['subscription_plan'],
+                'select' => '*'
+            ]);
+            
+            if (!isset($planResult['error']) && !empty($planResult)) {
+                $plan = $planResult[0];
+            }
         }
         
         // Ekip üyelerini çek
@@ -430,7 +485,7 @@ class ArtistController extends Controller
             $events = [];
         }
         
-        return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events'));
+        return view('artists.show', compact('artist', 'plan', 'teamMembers', 'events', 'reviewMode'));
     }
 
     /**
